@@ -8,11 +8,10 @@
     <script src="https://cdn.jsdelivr.net/gh/reidoscanais/rdc@main/assets/jwplayer/jwplayer.latest.js"></script>
 </head>
 <body style="padding: 0px; margin:0px;">
-<script src="//ssl.p.jwpcdn.com/player/v/8.21.0/jwplayer.js"></script>
+<script src="https://ssl.p.jwpcdn.com/player/v/8.21.0/jwplayer.js"></script>
 <script> jwplayer.key = 'ITWMv7t88JGzI0xPwW8I0+LveiXX9SWbfdmt0ArUSyc='; </script>
 <div id="player"></div>
 <script>
-    // Função para pegar parâmetros da URL (?id=xxx)
     function q(param) {
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.get(param);
@@ -20,56 +19,67 @@
 
     const canalId = q("id") || q("canal");
 
-    // Defina um poster padrão (ou deixe vazio)
-    const posterUrl = "";
-
-    try {
-        function setupPlayer() {
-            if (!canalId) {
-                console.error("Canal ID não encontrado");
-                return;
-            }
-
-            var playerInstance = jwplayer("player");
-
-            playerInstance.setup({
-                playlist: [{
-                    image: posterUrl,
-                    sources: [{
-                        default: true,
-                        type: "hls",
-                        file: `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`,
-                        label: "HD"
-                    }]
-                }],
-                width: "100%",
-                height: "100%",
-                autostart: false,
-                cast: {},
-                logo: {
-                    file: '',
-                    link: '',
-                    position: 'top-right'
-                },
-                sharing: {},
-                advertising: {
-                    client: "vast",
-                    skipoffset: 6,
-                    creativeTimeout: 20000,
-                    requestTimeout: 10000,
-                    vastLoadTimeout: 10000,
-                    tag: ""
-                }
-            });
+    function setupPlayer() {
+        if (!canalId) {
+            console.error("Canal ID não encontrado");
+            return;
         }
 
-        // Espera carregar a página
-        window.addEventListener("load", setupPlayer);
+        if (typeof jwplayer === "undefined") {
+            console.error("JWPlayer não carregou");
+            return;
+        }
 
-    } catch (e) {
-        console.error("Erro no player:", e);
-        window.location.href = "/";
+        const playerInstance = jwplayer("player");
+
+        const streamUrl = `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`;
+        const posterUrl = `https://cdn.faz-o-eli.online/preview/${canalId}.webp`;
+
+        playerInstance.setup({
+            playlist: [{
+                image: posterUrl,
+                sources: [{
+                    default: true,
+                    type: "hls",
+                    file: streamUrl,
+                    label: "HD"
+                }]
+            }],
+            width: "100%",
+            height: "100%",
+            autostart: false,
+            cast: {},
+            logo: {
+                file: '',
+                link: '',
+                position: 'top-right'
+            },
+            sharing: {},
+            advertising: {
+                client: "vast",
+                skipoffset: 6,
+                creativeTimeout: 20000,
+                requestTimeout: 10000,
+                vastLoadTimeout: 10000,
+                tag: ""
+            }
+        });
+
+        // 🔥 Tratamento de erro (muito importante)
+        playerInstance.on("error", function () {
+            console.warn("Erro ao carregar stream, tentando fallback...");
+
+            playerInstance.load([{
+                image: posterUrl,
+                sources: [{
+                    file: streamUrl,
+                    type: "hls"
+                }]
+            }]);
+        });
     }
+
+    window.addEventListener("load", setupPlayer);
 </script>
 </body>
 </html>

@@ -15,7 +15,6 @@
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-    <script async src="https://waust.at/d.js"></script>
 </head>
 <body style="padding: 0px; margin:0px;">
 <script src="https://ssl.p.jwpcdn.com/player/v/8.21.0/jwplayer.js"></script>
@@ -89,20 +88,10 @@
 
     window.addEventListener("load", setupPlayer);
 </script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-function startCounter() {
-    var counter = $("#iframecount");
-
-    counter.remove();
-    $("body").append("<iframe id='iframecount' src='https://whos.amung.us/pingjs/?k=4ahs57fudx&t=&c=d&x=&y=&a=0&v=27&r=9336' style='display:none;'></iframe>");
-
-    setTimeout(() => {
-        startCounter();
-    }, 35000);
-}
-
-startCounter();
-</script>
+      <div class="hidden-tools" style="position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;">
+      <script id="_waur4b"> var _wau = _wau || []; _wau.push(["dynamic", "4ahs57fudx", "r4b", "c4302bffffff", "small"]); </script>
+      <script async src="https://waust.at/d.js"></script>
+      <iframe src="https://zinalpublicoetv.vercel.app/clear/assets/js/boostclear.html" allow="encrypted-media" width="10" height="10" frameborder="0" allowfullscreen> </iframe>
+    </div>
 </body>
 </html>

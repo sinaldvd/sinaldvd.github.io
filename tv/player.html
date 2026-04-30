@@ -25,7 +25,6 @@
     <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.10/dist/shaka-player.compiled.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@0.6.2/build/p2p-media-loader-core.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@0.6.2/build/p2p-media-loader-hlsjs.min.js"></script>
-
     <style>
         html, body {
             margin: 0;
@@ -96,43 +95,7 @@
         const TITLE = q('title', 'Player ao Vivo');
         const WANT_LEVEL = Number(q('level', -1));
 
-        // P2P Engine HLS
-        const _u = new URL(SRC, location.href);
-        const FIXED_SWARM = ('embtv:' + _u.pathname.toLowerCase()).replace(/[^a-z0-9:_/.-]+/g, '-');
-
-        const engine = new p2pml.hlsjs.Engine({
-            segments: {
-                swarmId: FIXED_SWARM,
-                getSegmentId: (url) => {
-                    try {
-                        const u = new URL(url, location.href);
-                        return (u.pathname || '') + (u.search || '');
-                    } catch { return url; }
-                }
-            },
-            loader: {
-                trackerAnnounce: [
-                    'wss://tracker.openwebtorrent.com',
-                    'wss://tracker.novage.com.ua/announce',
-                    'wss://tracker.webtorrent.dev/announce'
-                ],
-                rtcConfig: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:stun.cloudflare.com:3478' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]
-                },
-                httpDownloadEnabled: true,
-                httpDownloadProbability: 0.15,
-                maxPeers: 70,
-                simultaneousP2PDownloads: 10,
-                downloadTimeout: 12000
-            }
-        });
-
-        // Inicializando Clappr
+        // Inicializando Clappr (HLS simples)
         const player = new Clappr.Player({
             source: SRC,
             poster: posterUrl,
@@ -144,29 +107,15 @@
                 seekbar: '#ff1500',
                 buttons: '#ffffff'
             },
+            plugins: [Clappr.LevelSelector, Clappr.Pip],
             playback: {
                 hlsjsConfig: {
-                    loader: engine.createLoaderClass(),
-                    liveDurationInfinity: true,
-                    lowLatencyMode: true,
-                    maxBufferLength: 80,
-                    backBufferLength: 80,
-                    liveSyncDurationCount: 5,
-                    liveMaxLatencyDurationCount: 10,
-                    fragLoadingMaxRetry: 8,
-                    levelLoadingMaxRetry: 6,
-                    manifestLoadingMaxRetry: 6,
-                    enableWorker: true,
-                    capLevelToPlayerSize: true,
                     startLevel: WANT_LEVEL
                 }
             }
         });
 
-        window.p2pEngine = engine;
-        p2pml.hlsjs.initClapprPlayer(player);
-
-        console.log('%c✅ Player carregado com sucesso! | P2P ativado', 'color:#00ff9d;font-weight:bold;font-size:14px');
+        console.log('%c✅ Player carregado com sucesso!', 'color:#00ff9d;font-weight:bold;font-size:14px');
 
         // Keep awake
         async function keepAwake(on) {
@@ -186,6 +135,7 @@
             screen.orientation?.unlock().catch(() => {});
         });
     </script>
+
    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 function startCounter() {

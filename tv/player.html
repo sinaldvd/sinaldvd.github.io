@@ -89,7 +89,7 @@
             throw new Error("Canal não informado");
         }
 
-        const posterUrl = `https://cdn.faz-o-eli.online/preview/${canalId}.webp`;
+        const posterUrl = `https://img.faz-o-eli.online/${canalId}.prev.png`;
         const SRC = q('src', `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`);
         const TITLE = q('title', 'Player ao Vivo');
         const WANT_LEVEL = Number(q('level', -1));

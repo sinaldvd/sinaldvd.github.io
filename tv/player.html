@@ -135,20 +135,5 @@
         });
     </script>
 
-   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-function startCounter() {
-    var counter = $("#iframecount");
-
-    counter.remove();
-    $("body").append("<iframe id='iframecount' src='https://whos.amung.us/pingjs/?k=4ahs57fudx&t=&c=d&x=&y=&a=0&v=27&r=9336' style='display:none;'></iframe>");
-
-    setTimeout(() => {
-        startCounter();
-    }, 35000);
-}
-
-startCounter();
-</script>
 </body>
 </html>

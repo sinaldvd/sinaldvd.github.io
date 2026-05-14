@@ -3,213 +3,176 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Player</title>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
-    <link rel="preconnect" href="https://sinaldvd.github.io" crossorigin>
-    <link rel="preconnect" href="https://sinalpublicoetv.vercel.app" crossorigin>
-    <link rel="preconnect" href="https://code.jquery.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@clappr/player@latest/dist/clappr.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/clappr/dash-shaka-playback@latest/dist/dash-shaka-playback.external.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.10/dist/shaka-player.compiled.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@0.6.2/build/p2p-media-loader-core.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@0.6.2/build/p2p-media-loader-hlsjs.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player</title>
 
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-        }
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
+<link rel="preconnect" href="https://code.jquery.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  
+<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+<script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@clappr/player@latest/dist/clappr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/clappr/dash-shaka-playback@latest/dist/dash-shaka-playback.external.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.10/dist/shaka-player.compiled.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@0.6.2/build/p2p-media-loader-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@0.6.2/build/p2p-media-loader-hlsjs.min.js"></script>
 
-        #player-wrapper {
-            width: 100%;
-            height: 100%;
-        }
+<style>
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+}
 
-        #player {
-            width: 100%;
-            height: 100%;
-        }
-    </style>
+  #player {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999999;
+    background: black;
+}
+
+.media-control[data-media-control]
+.bar-background[data-seekbar] {
+    height: 3px !important;
+}
+</style>
 </head>
 <body>
 
-<div id="player-wrapper">
-    <div id="player"></div>
-</div>
+<div id="player"></div>
 
 <script>
-    function q(name, fallback = null) {
-        const m = new RegExp('[?&]' + name + '=([^&#]*)').exec(location.href);
-        return m ? decodeURIComponent(m[1]) : fallback;
+function q(name, fallback = null) {
+    const m = new RegExp('[?&]' + name + '=([^&#]*)').exec(location.href);
+    return m ? decodeURIComponent(m[1]) : fallback;
+}
+
+const canalId = q("id") || q("canal");
+
+const source = q(
+    "src",
+    canalId
+        ? `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`
+        : null
+);
+
+if (!source) {
+    document.body.innerHTML =
+        '<h2 style="color:white;text-align:center;margin-top:50px">Use ?id=canal ou ?src=url.m3u8</h2>';
+    throw new Error("Sem source");
+}
+
+let reloadTimeout;
+const RELOAD_TIME = 15000;
+
+function scheduleReload(reason) {
+    clearTimeout(reloadTimeout);
+
+    reloadTimeout = setTimeout(() => {
+        console.warn("🔄 Reload:", reason);
+        location.reload();
+    }, RELOAD_TIME);
+}
+
+function clearReload() {
+    clearTimeout(reloadTimeout);
+}
+
+const player = new Clappr.Player({
+    source: source,
+    parentId: "#player",
+    autoPlay: true,
+    mute: false,
+    width: "100%",
+    height: "100%",
+    poster: "",
+
+    mediacontrol: {
+        seekbar: "#ff0000",
+        buttons: "#ff0000"
+    },
+
+    playback: {
+        hlsjsConfig: {
+            enableWorker: true,
+            liveSyncDurationCount: 3,
+            maxBufferLength: 10
+        }
     }
+});
 
-    const canalId = q("id") || q("canal");
+/* eventos player */
+player.on(Clappr.Events.PLAYER_PLAY, () => {
+    console.log("▶️ stream ativa");
+    clearReload();
+});
 
-    if (!canalId) {
-        document.body.innerHTML = `
-            <h2 style="color:#fff;text-align:center;margin-top:50px">
-                Canal não informado.<br>Use ?id= ou ?canal=
-            </h2>
-        `;
-        throw new Error("Canal não informado");
+player.on(Clappr.Events.PLAYER_BUFFERING, () => {
+    console.warn("⏳ buffering");
+    scheduleReload("buffering");
+});
+
+player.on(Clappr.Events.PLAYER_ERROR, (err) => {
+    console.error("❌ erro", err);
+    scheduleReload("erro");
+});
+
+player.on(Clappr.Events.PLAYER_STOP, () => {
+    scheduleReload("stop");
+});
+
+/* watchdog anti-freeze */
+setInterval(() => {
+    try {
+        const video = player?.core?.activePlayback?.el;
+
+        if (!video) return;
+
+        if (!video.paused && video.readyState < 3) {
+            console.warn("⚠️ stream travada");
+            scheduleReload("watchdog");
+        }
+    } catch(e) {}
+}, 10000);
+
+/* clique: áudio + fullscreen */
+document.addEventListener("click", () => {
+    try {
+        player.setMute(false);
+        console.log("🔊 áudio ativado");
+    } catch(e) {}
+
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.();
     }
+}, { once: true });
 
-    const SRC = q(
-        "src",
-        `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`
-    );
+/* wake lock */
+async function keepAwake() {
+    if (!("wakeLock" in navigator)) return;
 
-    const WANT_LEVEL = Number(q("level", -1));
+    try {
+        await navigator.wakeLock.request("screen");
+        console.log("🔋 wake lock ativo");
+    } catch(e) {}
+}
 
-    let player;
+keepAwake();
 
-    function createPlayer() {
-        player = new Clappr.Player({
-            source: SRC,
-            parentId: "#player",
-
-            autoPlay: false,
-            mute: true,
-
-            width: "100%",
-            height: "100%",
-
-            mediacontrol: {
-                seekbar: "#ff1500",
-                buttons: "#ffffff"
-            },
-
-            plugins: [
-                Clappr.LevelSelector,
-                Clappr.Pip
-            ],
-
-            playback: {
-                hlsjsConfig: {
-                    startLevel: WANT_LEVEL
-                }
-            }
-        });
-
-        setupMonitoring();
-    }
-
-    let reloadTimeout;
-    const RELOAD_TIME = 15000; // 15s
-
-    function scheduleReload(reason = "travou") {
-        clearTimeout(reloadTimeout);
-
-        reloadTimeout = setTimeout(() => {
-            console.warn("🔄 Recarregando:", reason);
-            location.reload();
-        }, RELOAD_TIME);
-    }
-
-    function clearReload() {
-        clearTimeout(reloadTimeout);
-    }
-
-    function setupMonitoring() {
-        player.on(Clappr.Events.PLAYER_PLAY, () => {
-            console.log("▶️ Stream ativa");
-            clearReload();
-        });
-
-        player.on(Clappr.Events.PLAYER_BUFFERING, () => {
-            console.warn("⏳ Buffering...");
-            scheduleReload("buffering longo");
-        });
-
-        player.on(Clappr.Events.PLAYER_ERROR, (err) => {
-            console.error("❌ Erro player", err);
-            scheduleReload("erro");
-        });
-
-        player.on(Clappr.Events.PLAYER_STOP, () => {
-            scheduleReload("player stop");
-        });
-
-        player.on(Clappr.Events.PLAYER_ENDED, () => {
-            scheduleReload("stream ended");
-        });
-    }
-
-    // watchdog extra
-    setInterval(() => {
-        try {
-            const playback = player?.core?.activePlayback;
-            if (!playback) return;
-
-            const video = playback.el;
-            if (!video) return;
-
-            if (!video.paused && video.readyState < 3) {
-                console.warn("⚠️ Travamento detectado");
-                scheduleReload("watchdog");
-            }
-        } catch (e) {}
-    }, 10000);
-
-    // desbloqueia áudio no primeiro toque
-    document.addEventListener("click", () => {
-        try {
-            player.setMute(false);
-            console.log("🔊 Áudio liberado");
-        } catch (e) {}
-    }, { once: true });
-
-    // wake lock
-    async function keepAwake(on) {
-        if (!("wakeLock" in navigator)) return;
-
-        try {
-            if (on) {
-                await navigator.wakeLock.request("screen");
-            }
-        } catch (e) {}
-    }
-
-    keepAwake(true);
-
-    document.addEventListener("visibilitychange", () => {
-        keepAwake(!document.hidden);
-    });
-
-    // fullscreen orientation
-    function setupFullscreen() {
-        player.on(Clappr.Events.PLAYER_FULLSCREEN, () => {
-            screen.orientation?.lock("landscape").catch(() => {});
-        });
-
-        player.on(Clappr.Events.PLAYER_EXIT_FULLSCREEN, () => {
-            screen.orientation?.unlock?.();
-        });
-    }
-
-    createPlayer();
-
-    setTimeout(() => {
-        if (player) setupFullscreen();
-    }, 1500);
-
-    console.log("✅ Player iniciado com autoplay + auto reload");
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) keepAwake();
+});
 </script>
-
 
 </body>
 </html>
+

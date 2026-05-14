@@ -59,13 +59,6 @@ html, body {
     opacity: 1;
 }
 
-.erro {
-    color: #fff;
-    text-align: center;
-    margin-top: 60px;
-    font-size: 22px;
-}
-
 .media-control[data-media-control]
 .media-control-layer[data-controls]
 .bar-container[data-seekbar]
@@ -98,24 +91,15 @@ html, body {
 <div id="player"></div>
 
 <script>
-    function q(name, fallback = null) {
-        const m = new RegExp('[?&]' + name + '=([^&#]*)').exec(location.href);
-        return m ? decodeURIComponent(m[1]) : fallback;
+    const params = new URLSearchParams(window.location.search);
+    const canalId = params.get("id");
+
+    if (!canalId) {
+        document.body.innerHTML = "<h2 style='color:white;text-align:center;margin-top:50px'>Canal não informado</h2>";
+        throw new Error("ID não informado");
     }
 
-    const canalId = q("id") || q("canal");
-
-    if (!canalId && !q("src")) {
-        document.body.innerHTML = `
-            <h2 class="erro">
-                Canal não informado.<br>
-                Use ?id=, ?canal= ou ?src=
-            </h2>
-        `;
-        throw new Error("Canal não informado");
-    }
-
-    const source = q( "src", `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8` );
+    const source = `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`;
 
     const player = new Clappr.Player({
         source: source,

@@ -10,7 +10,6 @@
     <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/clappr@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script type="text/javascript" charset="utf-8" src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
@@ -22,7 +21,7 @@
 
 <style>
 /* =========================================================
-   RESET / BASE
+   RESET
 ========================================================= */
 *{
     margin:0;
@@ -37,69 +36,64 @@ body{
     overflow:hidden;
     background:#000;
     font-family:Arial,Helvetica,sans-serif;
-
-    /* corrige bug fullscreen mobile */
-    position:fixed;
-    inset:0;
-    touch-action:manipulation;
 }
 
 /* =========================================================
-   PLAYER BASE
+   PLAYER ROOT
 ========================================================= */
 .player_screen{
     position:fixed;
     inset:0;
-    width:100vw;
-    height:100vh;
+    width:100%;
+    height:100%;
     overflow:hidden;
-
-    background-size:cover !important;
-    background-position:center center !important;
-    background-repeat:no-repeat !important;
-    background-color:#000;
-
-    z-index:1;
+    background:#000;
 }
 
 .player_container{
-    position:fixed;
+    position:absolute;
     inset:0;
-    width:100vw;
-    height:100vh;
+    width:100%;
+    height:100%;
 }
 
+/* =========================================================
+   VIDEO AREA
+========================================================= */
 #video{
-    position:fixed;
+    position:absolute;
     inset:0;
-
-    width:100vw !important;
-    height:100vh !important;
-
+    width:100% !important;
+    height:100% !important;
+    background:#000;
     overflow:hidden;
 
-    filter:
-        contrast(1.03)
-        saturate(1.08);
-
-    z-index:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
 }
 
+/* VIDEO REAL */
 #video video{
-    position:absolute !important;
-    inset:0;
+    width:100% !important;
+    height:100% !important;
 
-    width:100vw !important;
-    height:100vh !important;
-
+    /* NÃO ESTICA */
     object-fit:contain !important;
-    background:transparent !important;
+
+    background:#000 !important;
+
+    image-rendering:auto;
+
+    transform:translateZ(0);
+    backface-visibility:hidden;
 }
 
 /* =========================================================
    POSTER / FRAME
 ========================================================= */
-.player-poster{
+.player-poster,
+.player-poster[data-poster]{
     position:absolute !important;
     inset:0 !important;
 
@@ -110,29 +104,31 @@ body{
     background-position:center center !important;
     background-repeat:no-repeat !important;
 
-    filter:brightness(.92);
+    background-color:#000 !important;
+
+    overflow:hidden;
 
     opacity:1 !important;
-    background-color:transparent !important;
 }
 
-.player-poster[data-poster]{
-    background-color:transparent !important;
+.player-poster::after{
+    content:"";
+    position:absolute;
+    inset:0;
+
+    background:
+        linear-gradient(
+            to top,
+            rgba(0,0,0,.55),
+            rgba(0,0,0,.10) 45%,
+            rgba(0,0,0,.35)
+        );
+
+    pointer-events:none;
 }
 
 /* =========================================================
-   LIVE INDICATOR
-========================================================= */
-.dvr-controls[data-dvr-controls] .live-info:before{
-    background:#00ff99 !important;
-    box-shadow:
-        0 0 12px #00ff99,
-        0 0 22px rgba(0,255,153,.45);
-}
-
-/* =========================================================
-   BOTÃO PLAY CENTRAL
-   AJUSTADO PRA LANDSCAPE MOBILE / FULLSCREEN
+   PLAY CENTRAL NOVO
 ========================================================= */
 .player-poster[data-poster] .play-wrapper[data-poster],
 .play-wrapper[data-poster]{
@@ -141,13 +137,11 @@ body{
     top:50% !important;
     left:50% !important;
 
-    width:92px;
-    height:92px;
+    width:96px;
+    height:96px;
 
-    min-width:92px;
-    min-height:92px;
-
-    margin:0 !important;
+    transform:
+        translate(-50%,-50%) !important;
 
     display:flex !important;
     align-items:center !important;
@@ -155,55 +149,84 @@ body{
 
     border-radius:50%;
 
-    background:rgba(10,14,22,.78);
+    background:
+        linear-gradient(
+            180deg,
+            rgba(18,22,32,.92),
+            rgba(8,12,20,.92)
+        );
 
-    border:1px solid rgba(255,255,255,.10);
+    border:
+        1px solid rgba(255,255,255,.10);
 
     backdrop-filter:blur(14px);
     -webkit-backdrop-filter:blur(14px);
 
     box-shadow:
-        0 10px 35px rgba(0,0,0,.45),
-        inset 0 1px 0 rgba(255,255,255,.06);
+        0 12px 35px rgba(0,0,0,.45),
+        0 0 30px rgba(0,255,153,.10);
 
     overflow:hidden;
+
+    cursor:pointer;
 
     z-index:999999 !important;
 
     transition:
+        transform .22s ease,
         background .22s ease,
         border-color .22s ease,
-        transform .22s ease;
+        box-shadow .22s ease;
+}
 
-    /* CENTRALIZAÇÃO REAL */
-    transform:
-        translate3d(-50%,-50%,0) !important;
+/* glow */
+.player-poster[data-poster] .play-wrapper[data-poster]::before,
+.play-wrapper[data-poster]::before{
+    content:"";
 
-    -webkit-transform:
-        translate3d(-50%,-50%,0) !important;
+    position:absolute;
+    inset:0;
 
-    will-change:transform;
+    border-radius:inherit;
 
-    /* remove bug android */
-    right:auto !important;
-    bottom:auto !important;
+    border:
+        1px solid rgba(0,255,153,.15);
+
+    opacity:.9;
 }
 
 /* hover */
 .player-poster[data-poster] .play-wrapper[data-poster]:hover,
 .play-wrapper[data-poster]:hover{
     transform:
-        translate3d(-50%,-50%,0)
+        translate(-50%,-50%)
         scale(1.06) !important;
 
-    background:rgba(0,255,153,.14);
+    background:
+        linear-gradient(
+            180deg,
+            rgba(0,255,153,.18),
+            rgba(0,255,153,.08)
+        );
 
     border-color:
         rgba(0,255,153,.35);
+
+    box-shadow:
+        0 15px 45px rgba(0,0,0,.55),
+        0 0 45px rgba(0,255,153,.18);
+}
+
+/* click */
+.player-poster[data-poster] .play-wrapper[data-poster]:active,
+.play-wrapper[data-poster]:active{
+    transform:
+        translate(-50%,-50%)
+        scale(.96) !important;
 }
 
 /* =========================================================
-   ÍCONE PLAY
+   PLAY ICON
 ========================================================= */
 .play-wrapper[data-poster] svg,
 .poster-icon,
@@ -213,12 +236,10 @@ body{
 
     display:block !important;
 
-    margin-left:3px;
+    margin-left:4px;
 
     position:relative;
     z-index:2;
-
-    flex-shrink:0;
 }
 
 .play-wrapper[data-poster] svg path,
@@ -230,15 +251,24 @@ body{
         drop-shadow(0 0 10px rgba(0,255,153,.45));
 }
 
-/* remove bug visual */
-.play-wrapper[data-poster]:before,
+/* remove bug */
 .play-wrapper[data-poster]:after{
     display:none !important;
-    content:none !important;
 }
 
 /* =========================================================
-   SPINNER
+   LIVE
+========================================================= */
+.dvr-controls[data-dvr-controls] .live-info:before{
+    background:#00ff99 !important;
+
+    box-shadow:
+        0 0 10px #00ff99,
+        0 0 20px rgba(0,255,153,.45);
+}
+
+/* =========================================================
+   LOADING
 ========================================================= */
 #svg-spinner,
 .seek-disabled{
@@ -257,31 +287,30 @@ body{
 ========================================================= */
 .refresh{
     position:fixed;
-    z-index:999999;
-
     top:18px;
     right:18px;
+    z-index:999999;
 
-    padding:12px 22px !important;
+    padding:12px 20px !important;
 
     border-radius:14px;
 
     background:
-        rgba(12,18,28,.78);
+        rgba(15,20,30,.82);
 
     border:
         1px solid rgba(255,255,255,.08);
 
-    backdrop-filter:blur(18px);
+    backdrop-filter:blur(14px);
 
     color:#fff;
 
     font-size:13px !important;
-    font-weight:500;
+    font-weight:600;
 
     text-decoration:none;
 
-    transition:all .25s ease;
+    transition:all .22s ease;
 
     box-shadow:
         0 8px 25px rgba(0,0,0,.35);
@@ -289,10 +318,10 @@ body{
 
 .refresh:hover{
     background:
-        rgba(0,255,153,.15);
+        rgba(0,255,153,.14);
 
     border-color:
-        rgba(0,255,153,.45);
+        rgba(0,255,153,.35);
 
     transform:
         translateY(-2px);
@@ -300,8 +329,6 @@ body{
 
 .refresh b{
     color:#00ff99;
-    margin-left:4px;
-    font-weight:700;
 }
 
 .media-control-hide .refresh{
@@ -309,27 +336,26 @@ body{
 }
 
 /* =========================================================
-   BOTÃO ÁUDIO
+   AUDIO
 ========================================================= */
 .audio_active{
     position:fixed;
-
-    z-index:999999;
-
     top:18px;
     left:18px;
 
-    padding:12px 22px !important;
+    z-index:999999;
+
+    padding:12px 20px !important;
 
     border-radius:14px;
 
     background:
-        rgba(12,18,28,.78);
+        rgba(15,20,30,.82);
 
     border:
         1px solid rgba(255,255,255,.08);
 
-    backdrop-filter:blur(18px);
+    backdrop-filter:blur(14px);
 
     color:#fff;
 
@@ -337,7 +363,7 @@ body{
 
     cursor:pointer;
 
-    transition:all .25s ease;
+    transition:all .22s ease;
 
     box-shadow:
         0 8px 25px rgba(0,0,0,.35);
@@ -345,17 +371,17 @@ body{
 
 .audio_active:hover{
     background:
-        rgba(0,255,153,.15);
+        rgba(0,255,153,.14);
 
     border-color:
-        rgba(0,255,153,.45);
+        rgba(0,255,153,.35);
 
     transform:
         translateY(-2px);
 }
 
 /* =========================================================
-   MODAIS
+   MODAL
 ========================================================= */
 .banner_modal{
     position:fixed;
@@ -364,20 +390,14 @@ body{
     width:100%;
     height:100%;
 
-    z-index:99999;
-
     display:none;
-
     align-items:center;
     justify-content:center;
 
+    z-index:99999;
+
     background:
-        radial-gradient(
-            circle at top,
-            rgba(0,255,153,.08),
-            transparent 45%
-        ),
-        rgba(0,0,0,.86);
+        rgba(0,0,0,.88);
 
     backdrop-filter:blur(8px);
 }
@@ -393,7 +413,8 @@ body{
 
     border-radius:50%;
 
-    background:rgba(255,255,255,.08);
+    background:
+        rgba(255,255,255,.08);
 
     color:#fff;
 
@@ -407,69 +428,56 @@ body{
 }
 
 .banner_modal .close:hover{
+    transform:rotate(90deg);
+
     background:
         rgba(255,255,255,.16);
-
-    transform:
-        rotate(90deg);
 }
 
 .banner_modal .adzin{
     width:100%;
 
     display:flex;
-
-    justify-content:center;
     align-items:center;
+    justify-content:center;
 }
 
 /* =========================================================
-   MOBILE LANDSCAPE FIX
-========================================================= */
-@media screen and (orientation:landscape){
-
-    .player_screen,
-    .player_container,
-    #video,
-    #video video{
-        width:100vw !important;
-        height:100vh !important;
-    }
-
-    .player-poster[data-poster] .play-wrapper[data-poster],
-    .play-wrapper[data-poster]{
-        top:50vh !important;
-        left:50vw !important;
-
-        transform:
-            translate3d(-50%,-50%,0) !important;
-
-        -webkit-transform:
-            translate3d(-50%,-50%,0) !important;
-    }
-}
-
-/* =========================================================
-   MOBILE PEQUENO
+   MOBILE
 ========================================================= */
 @media(max-width:768px){
 
     .player-poster[data-poster] .play-wrapper[data-poster],
     .play-wrapper[data-poster]{
-        width:84px;
-        height:84px;
+        width:82px;
+        height:82px;
     }
 
     .play-wrapper[data-poster] svg,
     .poster-icon{
-        width:30px !important;
-        height:30px !important;
+        width:28px !important;
+        height:28px !important;
     }
 
     .refresh,
     .audio_active{
         padding:10px 16px !important;
         font-size:12px !important;
+    }
+}
+
+/* =========================================================
+   LANDSCAPE MOBILE
+========================================================= */
+@media screen and (orientation:landscape){
+
+    .player-poster[data-poster] .play-wrapper[data-poster],
+    .play-wrapper[data-poster]{
+        top:50% !important;
+        left:50% !important;
+
+        transform:
+            translate(-50%,-50%) !important;
     }
 }
 </style>

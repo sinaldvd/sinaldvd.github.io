@@ -5,53 +5,82 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Player Live</title>
-
+<title>Player</title>
 <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
-
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
 
 <style>
 html, body {
     margin: 0;
     padding: 0;
+    background: #000;
     width: 100%;
     height: 100%;
-    background: #000;
     overflow: hidden;
 }
 
 #player {
-    position: fixed;
-    inset: 0;
     width: 100%;
     height: 100%;
+}
+
+#loading {
+    position: fixed;
+    inset: 0;
     background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid rgba(255,255,255,0.2);
+    border-top-color: #ff0000;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 </style>
 </head>
+
 <body>
+
+<div id="loading">
+    <div class="spinner"></div>
+</div>
 
 <div id="player"></div>
 
 <script>
 function getParam(name) {
-    return new URLSearchParams(window.location.search).get(name);
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
 }
 
-const canalId = getParam("id");
+const id = getParam("id");
 
-if (!canalId) {
+if (!id) {
     document.body.innerHTML = `
         <div style="
             color:white;
-            display:flex;
-            justify-content:center;
-            align-items:center;
+            background:black;
             width:100%;
-            height:100%;
-            font-family:Arial,sans-serif;
+            height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-family:Arial;
             font-size:22px;
         ">
             Canal não informado
@@ -60,55 +89,57 @@ if (!canalId) {
     throw new Error("ID não informado");
 }
 
-const source = `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`;
+const source = `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${id}.m3u8`;
 
 const player = new Clappr.Player({
     parentId: "#player",
     source: source,
+    autoPlay: true,
+    mute: false,
     width: "100%",
     height: "100%",
-    autoPlay: true,
-    mute: true, // autoplay só funciona confiável assim
-    mediacontrol: { seekbar: "#ff0000" },
-
+    preload: "auto",
+    poster: source,
     playback: {
         playInline: true,
-        preload: "auto",
-        recycleVideo: true,
         hlsjsConfig: {
-            autoStartLoad: true,
-            startPosition: -1,
+            liveSyncDurationCount: 2,
+            liveMaxLatencyDurationCount: 3,
+            maxBufferLength: 15,
+            maxMaxBufferLength: 30,
+            backBufferLength: 0,
             enableWorker: true,
             lowLatencyMode: true,
-            liveSyncDurationCount: 3
+            fragLoadingMaxRetry: 5,
+            manifestLoadingMaxRetry: 5,
+            levelLoadingMaxRetry: 5
         }
     }
 });
 
-// força play ao carregar
-player.on(Clappr.Events.PLAYER_READY, function () {
-    try {
-        player.play();
-        player.setVolume(100);
-    } catch (e) {
-        console.log("Autoplay bloqueado:", e);
-    }
+player.on(Clappr.Events.PLAYER_PLAY, () => {
+    document.getElementById("loading").style.display = "none";
 });
 
-// primeiro clique ativa áudio
-function liberarAudio() {
-    try {
-        player.unmute();
-        player.setVolume(100);
-        player.play();
-    } catch (e) {}
-    document.removeEventListener("click", liberarAudio);
-    document.removeEventListener("touchstart", liberarAudio);
-}
+player.on(Clappr.Events.PLAYER_ERROR, () => {
+    console.log("Erro no stream, tentando reconectar...");
+    
+    setTimeout(() => {
+        player.configure({
+            source: source + "?v=" + Date.now()
+        });
 
-document.addEventListener("click", liberarAudio);
-document.addEventListener("touchstart", liberarAudio);
+        player.play();
+    }, 3000);
+});
+
+document.addEventListener("click", () => {
+    player.play();
+}, { once: true });
 </script>
+
+</body>
+</html>
 
 </body>
 </html>

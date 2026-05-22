@@ -11,6 +11,7 @@
     <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/clappr@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script type="text/javascript" charset="utf-8" src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
@@ -29,22 +30,41 @@
     filter: contrast(1.03) saturate(1.08);
 }
 
+/* AQUI REMOVE O PRETO E USA FRAME */
 .player_screen {
     position: fixed;
     inset: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-        180deg,
-        rgba(5, 7, 13, 0.15) 0%,
-        rgba(5, 7, 13, 0.35) 100%
-    );
+
+    background-size: cover !important;
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
+
+    background-color: #000;
 }
 
+/* FRAME DO STREAM */
 .player-poster {
     background-size: cover !important;
     background-position: center center !important;
+    background-repeat: no-repeat !important;
+
     filter: brightness(.9);
+
+    opacity: 1 !important;
+
+    background-color: transparent !important;
+}
+
+/* REMOVE FUNDO PRETO DO CLAPPR */
+.player-poster[data-poster] {
+    background-color: transparent !important;
+}
+
+/* VIDEO */
+#video video {
+    background: transparent !important;
 }
 
 /* LIVE */

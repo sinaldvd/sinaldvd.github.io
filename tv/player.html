@@ -187,56 +187,15 @@
         border-color: rgba(0, 255, 153, 0.45);
         transform: translateY(-2px);
     }
-
-    /* ====================== MODAIS ====================== */
-    .banner_modal {
-        position: fixed;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 99999;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        background: 
-            radial-gradient(circle at top, rgba(0,255,153,.08), transparent 45%),
-            rgba(0,0,0,.86);
-        backdrop-filter: blur(8px);
-    }
-
-    .banner_modal .close {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        background: rgba(255,255,255,.08);
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all .2s ease;
-    }
-
-    .banner_modal .close:hover {
-        background: rgba(255,255,255,.16);
-        transform: rotate(90deg);
-    }
-
-    .banner_modal .adzin {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
 </style>
+</head>
+<body>
     
     <div class="player_screen">
         <div id="loading">
-        <div class="player_container visible">
-            <div id="video"></div>
+            <div class="player_container visible">
+                <div id="video"></div>
+            </div>
         </div>
     </div>
         
@@ -257,7 +216,6 @@ const source = `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${id}.m3u8`;
 
 let data = {
     id: id,
-    image: "",
     stream: source,
     p2p: null,
     player: null
@@ -268,55 +226,34 @@ let stats = {
     totalSegments: 0,
     p2pSegments: 0,
     httpSegments: 0,
-
     get loadPercent() {
         if (this.totalSegments === 0) return 0;
-
-        return (
-            (this.p2pSegments / this.totalSegments) * 100
-        ).toFixed(1);
+        return ((this.p2pSegments / this.totalSegments) * 100).toFixed(1);
     }
 };
 
 function startPlayer(src) {
-
     try {
-
         const p2pConfig = {
-
-            segments: {
-                swarmId: "canal_" + data.id
-            },
-
+            segments: { swarmId: "canal_" + data.id },
             loader: {
-
                 trackerAnnounce: [
                     'wss://tracker.openwebtorrent.com',
                     'wss://tracker.novage.com.ua/announce',
                     'wss://tracker.webtorrent.dev/announce'
                 ],
-
                 rtcConfig: {
                     iceServers: [
-                        {
-                            urls: 'stun:stun.l.google.com:19302'
-                        },
-                        {
-                            urls: 'stun:stun1.l.google.com:19302'
-                        },
-                        {
-                            urls: 'stun:stun.cloudflare.com:3478'
-                        }
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun.cloudflare.com:3478' }
                     ]
                 },
-
                 httpDownloadEnabled: true,
                 httpDownloadProbability: 0.10,
-
                 maxPeers: 80,
                 simultaneousP2PDownloads: 12,
                 downloadTimeout: 10000,
-
                 cachedSegmentExpiration: 20 * 60 * 1000,
                 cachedSegmentsCount: 800
             }
@@ -325,128 +262,62 @@ function startPlayer(src) {
         data.p2p = new p2pml.hlsjs.Engine(p2pConfig);
 
         data.p2p.on("peer_connect", (peer) => {
-
             stats.connectedPeers++;
-
-            console.log(
-                `✅ Peer conectado: ${peer.id}`
-            );
-
+            console.log(`✅ Peer conectado: ${peer.id}`);
         });
 
         data.p2p.on("peer_close", () => {
-
-            stats.connectedPeers = Math.max(
-                0,
-                stats.connectedPeers - 1
-            );
-
+            stats.connectedPeers = Math.max(0, stats.connectedPeers - 1);
         });
 
         data.p2p.on("segment_loaded", (segment, peerId) => {
-
             stats.totalSegments++;
-
             if (peerId) {
-
                 stats.p2pSegments++;
-
-                console.log(
-                    "%cP2P",
-                    "color:lime",
-                    segment.url
-                );
-
+                console.log("%cP2P", "color:lime", segment.url);
             } else {
-
                 stats.httpSegments++;
-
-                console.log(
-                    "%cHTTP",
-                    "color:orange",
-                    segment.url
-                );
+                console.log("%cHTTP", "color:orange", segment.url);
             }
-
-            console.log(
-                `📊 Peers: ${stats.connectedPeers} | P2P: ${stats.loadPercent}%`
-            );
-
+            console.log(`📊 Peers: ${stats.connectedPeers} | P2P: ${stats.loadPercent}%`);
         });
 
     } catch (err) {
-
-        console.warn(
-            "❌ Falha ao inicializar P2P:",
-            err
-        );
-
+        console.warn("❌ Falha ao inicializar P2P:", err);
         data.p2p = null;
     }
 
     data.player = new Clappr.Player({
-
         parentId: "#video",
-
         source: src,
-
         mimeType: "application/x-mpegURL",
-
-        autoPlay: true,
-
+        autoPlay: false,
         mute: false,
-
         width: "100%",
-
         height: "100%",
-
         preload: "auto",
-
         plugins: [ChromecastPlugin],
-
         chromecast: {
-
             appId: "9DFB77C0",
-
-            media: {
-                title: id,
-                subtitle: "Live"
-            }
+            media: { title: id, subtitle: "Live" }
         },
-
         playback: {
-
             playInline: true,
-
             hlsjsConfig: {
-
-                loader: data.p2p
-                    ? data.p2p.createLoaderClass()
-                    : undefined,
-
+                loader: data.p2p ? data.p2p.createLoaderClass() : undefined,
                 liveSyncDurationCount: 2,
                 liveMaxLatencyDurationCount: 3,
-
                 maxBufferLength: 20,
                 maxMaxBufferLength: 40,
-
                 backBufferLength: 0,
-
                 startLevel: -1,
-
                 autoStartLoad: true,
-
                 maxBufferHole: 0.5,
-
                 highBufferWatchdogPeriod: 2,
-
                 fragLoadingMaxRetry: 5,
                 fragLoadingRetryDelay: 1000,
-
                 manifestLoadingRetryDelay: 1000,
-
                 lowLatencyMode: true,
-
                 abrEwmaDefaultEstimate: 500000
             }
         }
@@ -457,59 +328,26 @@ function startPlayer(src) {
     }
 
     data.player.on(Clappr.Events.PLAYER_READY, () => {
-
         const video = document.querySelector("video");
-
         if (!video) return;
-
         video.muted = true;
-
         video.play().then(() => {
-
             setTimeout(() => {
-
                 video.muted = false;
-
                 data.player.setVolume(100);
-
             }, 1000);
-
         }).catch(err => {
-
-            console.log(
-                "Autoplay bloqueado:",
-                err
-            );
-
+            console.log("Autoplay bloqueado:", err);
         });
-
     });
 
-    data.player.on(
-        Clappr.Events.PLAYER_ERROR,
-        () => {
-
-            console.log(
-                "❌ Erro no stream, reconectando..."
-            );
-
-            setTimeout(() => {
-
-                data.player.configure({
-
-                    source:
-                        source +
-                        "?v=" +
-                        Date.now()
-
-                });
-
-                data.player.play();
-
-            }, 3000);
-
-        }
-    );
+    data.player.on(Clappr.Events.PLAYER_ERROR, () => {
+        console.log("❌ Erro no stream, reconectando...");
+        setTimeout(() => {
+            data.player.configure({ source: source + "?v=" + Date.now() });
+            data.player.play();
+        }, 3000);
+    });
 
     $("[data-player]").append(
         '<a onclick="data.player.stop();data.player.play();" href="#" class="refresh">Travou? <b>Clique Aqui</b></a>'
@@ -518,22 +356,13 @@ function startPlayer(src) {
     data.player.play();
 
     setInterval(() => {
-
-        if ($(".media-control-hide").length)
-            $(".refresh").hide();
-        else
-            $(".refresh").show();
-
+        $(".refresh").toggle(!$(".media-control-hide").length);
     }, 200);
-
 }
 
 $(function () {
-
     startPlayer(source);
-
 });
-
 </script>
 
 </body>

@@ -97,16 +97,13 @@
     }
 
     /* Ícone Play */
-    .play-wrapper[data-poster] svg,
-    .poster-icon {
+    .play-wrapper[data-poster] svg {
         width: 34px !important;
         height: 34px !important;
         display: block;
     }
 
-    .play-wrapper[data-poster] svg path,
-    .poster-icon path,
-    .jw-svg-icon-play path {
+    .play-wrapper[data-poster] svg path {
         fill: #00ff99 !important;
         filter: drop-shadow(0 0 10px rgba(0, 255, 153, 0.45));
     }
@@ -128,7 +125,6 @@
         background: #00ff99 !important;
         box-shadow: 0 0 10px #00ff99;
     }
-
     /* ====================== BOTÃO REFRESH ====================== */
     .refresh {
         position: fixed;
@@ -162,30 +158,6 @@
 
     .media-control-hide .refresh {
         display: none;
-    }
-
-    /* ====================== BOTÃO ÁUDIO ====================== */
-    .audio_active {
-        position: fixed;
-        z-index: 999999;
-        top: 18px;
-        left: 18px;
-        padding: 12px 22px !important;
-        border-radius: 14px;
-        background: rgba(12, 18, 28, 0.78);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(18px);
-        color: #ffffff;
-        font-size: 13px !important;
-        cursor: pointer;
-        transition: all 0.25s ease;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
-    }
-
-    .audio_active:hover {
-        background: rgba(0, 255, 153, 0.15);
-        border-color: rgba(0, 255, 153, 0.45);
-        transform: translateY(-2px);
     }
 </style>
 </head>
@@ -274,12 +246,9 @@ function startPlayer(src) {
             stats.totalSegments++;
             if (peerId) {
                 stats.p2pSegments++;
-                console.log("%cP2P", "color:lime", segment.url);
             } else {
                 stats.httpSegments++;
-                console.log("%cHTTP", "color:orange", segment.url);
             }
-            console.log(`📊 Peers: ${stats.connectedPeers} | P2P: ${stats.loadPercent}%`);
         });
 
     } catch (err) {
@@ -291,7 +260,7 @@ function startPlayer(src) {
         parentId: "#video",
         source: src,
         mimeType: "application/x-mpegURL",
-        autoPlay: false,
+        autoPlay: true,
         mute: false,
         width: "100%",
         height: "100%",
@@ -350,7 +319,7 @@ function startPlayer(src) {
     });
 
     $("[data-player]").append(
-        '<a onclick="data.player.stop();data.player.play();" href="#" class="refresh">Travou? <b>Clique Aqui</b></a>'
+        '<a onclick="data.player.stop();data.player.play();return false;" href="#" class="refresh">Travou? <b>Clique Aqui</b></a>'
     );
 
     data.player.play();

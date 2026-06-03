@@ -4,9 +4,9 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Player</title>
+	<link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
     <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/clappr@latest"></script>
@@ -15,8 +15,6 @@
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
     <script type="text/javascript" src="https://ssl.p.jwpcdn.com/player/v/8.19.1/jwplayer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@clappr/player@0.4.7/dist/clappr.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@0.6.2/build/p2p-media-loader-core.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@0.6.2/build/p2p-media-loader-hlsjs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script type="text/javascript">
         jwplayer.key = "64HPbvSQorQcd52B8XFuhMtEoitbvY/EXJmMBfKcXZQU2Rnn";
@@ -484,341 +482,78 @@ html,body{
   <div id="player"></div>
 
 <script>
-/* ========= BLOQUEIOS BÁSICOS ========= */
-document.addEventListener('contextmenu', e => e.preventDefault());
+function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+}
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'F12') e.preventDefault();
+const canalId = getParam("id");
 
-  if (e.ctrlKey && ['U','S'].includes(e.key.toUpperCase())) {
-    e.preventDefault();
-  }
+if (!canalId) {
+    document.body.innerHTML = `
+        <div style="
+            color:white;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            width:100%;
+            height:100%;
+            font-family:Arial,sans-serif;
+            font-size:22px;
+        ">
+            Canal não informado
+        </div>
+    `;
+    throw new Error("ID não informado");
+}
 
-  if (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key.toUpperCase())) {
-    e.preventDefault();
-  }
+const source = `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`;
+
+const player = new Clappr.Player({
+    parentId: "#player",
+    source: source,
+    width: "100%",
+    height: "100%",
+    autoPlay: true,
+    mute: true, // autoplay só funciona confiável assim
+    mediacontrol: { seekbar: "#ff0000" },
+
+    playback: {
+        playInline: true,
+        preload: "auto",
+        recycleVideo: true,
+        hlsjsConfig: {
+            autoStartLoad: true,
+            startPosition: -1,
+            enableWorker: true,
+            lowLatencyMode: true,
+            liveSyncDurationCount: 3
+        }
+    }
 });
 
-/* ========= HELPERS ========= */
-function getParam(name){
-  const params = new URLSearchParams(window.location.search);
-  return params.get(name);
-}
-
-const id = getParam("id");
-
-if(!id){
-  document.body.innerHTML = `
-    <div style="
-      width:100%;
-      height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:#000;
-      color:#fff;
-      font-family:Arial;
-      font-size:20px;
-    ">
-      Canal não informado
-    </div>
-  `;
-
-  throw new Error("ID não informado");
-}
-
-const source = `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${id}.m3u8`;
-
-let player = null;
-let p2pEngine = null;
-
-/* ========= P2P ========= */
-function createP2P(){
-
-  try{
-
-    const config = {
-
-      segments:{
-        swarmId: "canal_" + id
-      },
-
-      loader:{
-
-        trackerAnnounce:[
-          "wss://tracker.openwebtorrent.com",
-          "wss://tracker.novage.com.ua/announce",
-          "wss://tracker.webtorrent.dev/announce"
-        ],
-
-        rtcConfig:{
-          iceServers:[
-            { urls:"stun:stun.l.google.com:19302" },
-            { urls:"stun:stun1.l.google.com:19302" },
-            { urls:"stun:stun.cloudflare.com:3478" }
-          ]
-        },
-
-        httpDownloadEnabled:true,
-        httpDownloadProbability:0.10,
-
-        maxPeers:80,
-        simultaneousP2PDownloads:12,
-
-        downloadTimeout:10000,
-
-        cachedSegmentExpiration:20 * 60 * 1000,
-        cachedSegmentsCount:800
-      }
-    };
-
-    p2pEngine = new p2pml.hlsjs.Engine(config);
-
-    console.log("✅ P2P iniciado");
-
-  }catch(err){
-
-    console.warn("❌ Erro P2P:", err);
-
-    p2pEngine = null;
-  }
-}
-
-/* ========= PLAYER ========= */
-function startPlayer(src){
-
-  createP2P();
-
-  player = new Clappr.Player({
-
-    parentId:"#player",
-
-    source:src,
-
-    mimeType:"application/x-mpegURL",
-
-    autoPlay:true,
-
-    mute:false,
-
-    width:"100%",
-    height:"100%",
-
-    preload:"auto",
-
-    playback:{
-
-      playInline:true,
-
-      hlsjsConfig:{
-
-        loader:p2pEngine
-          ? p2pEngine.createLoaderClass()
-          : undefined,
-
-        liveSyncDurationCount:3,
-        liveMaxLatencyDurationCount:6,
-
-        maxBufferLength:60,
-        maxMaxBufferLength:120,
-
-        backBufferLength:30,
-
-        maxBufferHole:0.5,
-
-        lowLatencyMode:true,
-
-        fragLoadingTimeOut:20000,
-        manifestLoadingTimeOut:15000,
-        levelLoadingTimeOut:15000,
-
-        fragLoadingMaxRetry:6,
-        manifestLoadingMaxRetry:6,
-        levelLoadingMaxRetry:6,
-
-        fragLoadingRetryDelay:1000,
-        manifestLoadingRetryDelay:1000,
-        levelLoadingRetryDelay:1000,
-
-        startLevel:-1,
-
-        enableWorker:true,
-
-        capLevelToPlayerSize:true,
-
-        abrEwmaDefaultEstimate:5000000
-      }
-    }
-  });
-
-  /* ========= INTEGRAR P2P ========= */
-  if(p2pEngine){
-
-    try{
-
-      p2pml.hlsjs.initClapprPlayer(player);
-
-    }catch(e){
-
-      console.warn("Erro integração P2P:", e);
-    }
-  }
-
-  /* ========= PLAYER READY ========= */
-  player.on(Clappr.Events.PLAYER_READY, () => {
-
-    console.log("✅ Player pronto");
-
-    const video = document.querySelector("#player video");
-
-    if(!video) return;
-
-    video.muted = true;
-
-    video.play()
-
-      .then(() => {
-
-        setTimeout(() => {
-
-          video.muted = false;
-
-          try{
-            player.setVolume(100);
-          }catch(e){}
-
-        }, 1000);
-
-      })
-
-      .catch(err => {
-
-        console.log("Autoplay bloqueado:", err);
-      });
-  });
-
-  /* ========= ERRO ========= */
-  player.on(Clappr.Events.PLAYER_ERROR, () => {
-
-    console.log("❌ Erro detectado");
-
-    reconnectPlayer();
-  });
-
-  /* ========= STOP ========= */
-  player.on(Clappr.Events.PLAYER_STOP, () => {
-
-    console.log("⚠️ Stream parada");
-
-    reconnectPlayer();
-  });
-
-  /* ========= PLAY ========= */
-  player.on(Clappr.Events.PLAYER_PLAY, () => {
-
-    console.log("▶️ Reprodução iniciada");
-  });
-
-  player.play();
-
-  createRefreshButton();
-}
-
-/* ========= RECONECTAR ========= */
-function reconnectPlayer(){
-
-  setTimeout(() => {
-
-    try{
-
-      if(player){
-
-        player.stop();
-
-        player.configure({
-          source: source + "?v=" + Date.now()
-        });
-
+// força play ao carregar
+player.on(Clappr.Events.PLAYER_READY, function () {
+    try {
         player.play();
-      }
-
-    }catch(err){
-
-      console.log(err);
-
-      hardReload();
+        player.setVolume(100);
+    } catch (e) {
+        console.log("Autoplay bloqueado:", e);
     }
-
-  }, 3000);
-}
-
-/* ========= HARD RELOAD ========= */
-function hardReload(){
-
-  try{
-
-    if(player){
-      player.destroy();
-    }
-
-  }catch(e){}
-
-  location.reload();
-}
-
-
-/* ========= WAKE LOCK ========= */
-let wakeLock = null;
-
-async function keepAwake(){
-
-  try{
-
-    if("wakeLock" in navigator){
-
-      wakeLock = await navigator.wakeLock.request("screen");
-    }
-
-  }catch(err){
-
-    console.log(err);
-  }
-}
-
-document.addEventListener("visibilitychange", () => {
-
-  if(document.visibilityState === "visible"){
-
-    keepAwake();
-  }
 });
 
-/* ========= FULLSCREEN ========= */
-document.addEventListener("fullscreenchange", () => {
+// primeiro clique ativa áudio
+function liberarAudio() {
+    try {
+        player.unmute();
+        player.setVolume(100);
+        player.play();
+    } catch (e) {}
+    document.removeEventListener("click", liberarAudio);
+    document.removeEventListener("touchstart", liberarAudio);
+}
 
-  if(document.fullscreenElement){
-
-    if(screen.orientation?.lock){
-
-      screen.orientation.lock("landscape").catch(()=>{});
-    }
-
-  }else{
-
-    if(screen.orientation?.unlock){
-
-      screen.orientation.unlock().catch(()=>{});
-    }
-  }
-});
-
-/* ========= START ========= */
-window.addEventListener("load", () => {
-
-  keepAwake();
-
-  startPlayer(source);
-});
+document.addEventListener("click", liberarAudio);
+document.addEventListener("touchstart", liberarAudio);
 </script>
 
 </body>

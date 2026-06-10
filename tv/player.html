@@ -18,20 +18,7 @@
     <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
     <script type="text/javascript" src="https://ssl.p.jwpcdn.com/player/v/8.19.1/jwplayer.js"></script>
     <script type="text/javascript"> jwplayer.key = "64HPbvSQorQcd52B8XFuhMtEoitbvY/EXJmMBfKcXZQU2Rnn"; </script>
-
 <style>
-*, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    background: #050709;
-    overflow: hidden;
-}
-
-/* ── CONTAINER PRINCIPAL ── */
 #video {
     position: fixed;
     inset: 0;
@@ -48,194 +35,24 @@ body {
     height: 100%;
     background: linear-gradient(
         180deg,
-        rgba(5, 7, 13, 0.12) 0%,
-        rgba(5, 7, 13, 0.32) 100%
+        rgba(5, 7, 13, 0.15) 0%,
+        rgba(5, 7, 13, 0.35) 100%
     );
 }
 
-/* ── THUMBNAIL / POSTER OVERLAY ── */
-#thumb-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    background: #050709;
-    transition: opacity 0.4s ease;
+.player-poster {
+    background-size: cover !important;
+    background-position: center center !important;
+    filter: brightness(.9);
 }
 
-#thumb-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-/* Imagem de fundo / thumbnail */
-#thumb-bg {
-    position: absolute;
-    inset: 0;
-    background-size: cover;
-    background-position: center center;
-    background-repeat: no-repeat;
-    filter: brightness(0.62) saturate(1.1);
-    transition: filter 0.3s ease;
-}
-
-#thumb-overlay:hover #thumb-bg {
-    filter: brightness(0.72) saturate(1.15);
-}
-
-/* Gradiente sobre a thumb */
-#thumb-overlay::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(ellipse at center, transparent 25%, rgba(5,7,13,0.55) 100%),
-        linear-gradient(180deg, rgba(5,7,13,0.10) 0%, rgba(5,7,13,0.50) 100%);
-    pointer-events: none;
-    z-index: 1;
-}
-
-/* ── INDICADOR DE CARREGANDO FRAME ── */
-#thumb-loading {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    z-index: 3;
-}
-
-#thumb-loading .dots {
-    display: flex;
-    gap: 8px;
-}
-
-#thumb-loading .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #00ff99;
-    box-shadow: 0 0 8px #00ff99;
-    animation: dotBounce 1.2s infinite ease-in-out;
-}
-
-#thumb-loading .dot:nth-child(2) { animation-delay: 0.2s; }
-#thumb-loading .dot:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes dotBounce {
-    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-    40% { transform: scale(1); opacity: 1; }
-}
-
-#thumb-loading span {
-    font-size: 12px;
-    color: rgba(255,255,255,0.45);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-/* ── PLAY BUTTON ── */
-#play-btn {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 96px;
-    height: 96px;
-    transform: translate(-50%, -50%);
-    z-index: 4;
-
-    display: none; /* aparece após thumb carregar */
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 50%;
-    background: rgba(10, 14, 22, 0.80);
-    border: 1.5px solid rgba(0,255,153,0.25);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow:
-        0 0 0 0 rgba(0,255,153,0.15),
-        0 12px 40px rgba(0,0,0,0.50),
-        inset 0 1px 0 rgba(255,255,255,0.06);
-
-    transition:
-        transform 0.22s ease,
-        background 0.22s ease,
-        border-color 0.22s ease,
-        box-shadow 0.22s ease;
-
-    animation: pulseBorder 2.8s infinite ease-in-out;
-}
-
-@keyframes pulseBorder {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,153,0.15), 0 12px 40px rgba(0,0,0,.50); }
-    50%  { box-shadow: 0 0 0 10px rgba(0,255,153,0.0), 0 12px 40px rgba(0,0,0,.50); }
-}
-
-#thumb-overlay:hover #play-btn {
-    transform: translate(-50%, -50%) scale(1.07);
-    background: rgba(0,255,153,0.16);
-    border-color: rgba(0,255,153,0.45);
-}
-
-#play-btn svg {
-    width: 36px;
-    height: 36px;
-    margin-left: 4px; /* visual centering do triângulo */
-    display: block;
-    filter: drop-shadow(0 0 10px rgba(0,255,153,0.50));
-}
-
-/* ── BADGE LIVE ── */
-#live-badge {
-    position: absolute;
-    bottom: 28px;
-    left: 28px;
-    z-index: 5;
-    display: none;
-    align-items: center;
-    gap: 7px;
-    padding: 7px 14px;
-    border-radius: 999px;
-    background: rgba(10,14,22,0.82);
-    border: 1px solid rgba(0,255,153,0.22);
-    backdrop-filter: blur(12px);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    color: #fff;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-#live-badge .dot-live {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #00ff99;
-    box-shadow: 0 0 8px #00ff99;
-    animation: livePulse 1.6s infinite;
-}
-
-@keyframes livePulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.35; }
-}
-
-
-/* ── CLAPPR LIVE INDICATOR ── */
+/* LIVE */
 .dvr-controls[data-dvr-controls] .live-info:before {
     background: #00ff99;
     box-shadow: 0 0 12px #00ff99;
 }
 
-/* ── CLAPPR PLAY BUTTON (fallback interno) ── */
+/* PLAY BUTTON AJUSTADO */
 .player-poster[data-poster] .play-wrapper[data-poster],
 .play-wrapper[data-poster] {
     position: absolute;
@@ -244,20 +61,32 @@ body {
     width: 92px;
     height: 92px;
     transform: translate(-50%, -50%);
+
     display: flex;
     align-items: center;
     justify-content: center;
+
     border-radius: 50%;
     background: rgba(10, 14, 22, 0.78);
     border: 1px solid rgba(255,255,255,.10);
+
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    box-shadow: 0 10px 35px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
-    transition: transform .22s ease, background .22s ease, border-color .22s ease;
+
+    box-shadow:
+        0 10px 35px rgba(0,0,0,.45),
+        inset 0 1px 0 rgba(255,255,255,.06);
+
+    transition:
+        transform .22s ease,
+        background .22s ease,
+        border-color .22s ease;
+
     overflow: hidden;
     z-index: 20;
 }
 
+/* HOVER */
 .player-poster[data-poster] .play-wrapper[data-poster]:hover,
 .play-wrapper[data-poster]:hover {
     transform: translate(-50%, -50%) scale(1.06);
@@ -265,6 +94,7 @@ body {
     border-color: rgba(0,255,153,.35);
 }
 
+/* SVG */
 .play-wrapper[data-poster] svg,
 .poster-icon {
     width: 34px !important;
@@ -272,6 +102,7 @@ body {
     display: block;
 }
 
+/* TRIANGULO PLAY */
 .play-wrapper[data-poster] svg path,
 .poster-icon path,
 .jw-svg-icon-play path {
@@ -279,13 +110,14 @@ body {
     filter: drop-shadow(0 0 10px rgba(0,255,153,.45));
 }
 
+/* REMOVE BUG VISUAL */
 .play-wrapper[data-poster]:before,
 .play-wrapper[data-poster]:after {
     display: none !important;
     content: none !important;
 }
 
-/* ── SPINNER ── */
+/* SPINNER */
 #svg-spinner,
 .seek-disabled {
     display: none !important;
@@ -296,25 +128,23 @@ body {
     box-shadow: 0 0 10px #00ff99;
 }
 
-/* ── BOTÃO REFRESH ── */
+/* BOTÃO REFRESH */
 .refresh {
     position: fixed;
     z-index: 999999;
     top: 18px;
     right: 18px;
-    padding: 11px 20px;
+    padding: 12px 22px !important;
     border-radius: 14px;
     background: rgba(12, 18, 28, .78);
     border: 1px solid rgba(255,255,255,.08);
     backdrop-filter: blur(18px);
     color: #ffffff;
-    font-size: 13px;
+    font-size: 13px !important;
     font-weight: 500;
     text-decoration: none;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     transition: .25s ease;
     box-shadow: 0 8px 25px rgba(0,0,0,.35);
-    display: none;
 }
 
 .refresh:hover {
@@ -330,10 +160,34 @@ body {
 }
 
 .media-control-hide .refresh {
-    display: none !important;
+    display: none;
 }
 
-/* ── MODAL ── */
+/* AUDIO BUTTON */
+.audio_active {
+    position: fixed;
+    z-index: 999999;
+    top: 18px;
+    left: 18px;
+    padding: 12px 22px !important;
+    border-radius: 14px;
+    background: rgba(12, 18, 28, .78);
+    border: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(18px);
+    color: #ffffff;
+    font-size: 13px !important;
+    cursor: pointer;
+    transition: .25s ease;
+    box-shadow: 0 8px 25px rgba(0,0,0,.35);
+}
+
+.audio_active:hover {
+    background: rgba(0,255,153,.15);
+    border-color: rgba(0,255,153,.45);
+    transform: translateY(-2px);
+}
+
+/* MODAL */
 .banner_modal {
     position: fixed;
     inset: 0;
@@ -377,7 +231,7 @@ body {
     align-items: center;
 }
 
-/* ── TURNSTILE ── */
+/* TURNSTILE */
 .cf-turnstile {
     position: fixed !important;
     z-index: 999999999 !important;
@@ -386,10 +240,12 @@ body {
     transform: translate(-50%, -50%);
 }
 
-/* ── ADS MODAL ── */
+/* ADS MODAL */
 #ad-modal-overlay {
     background:
-        radial-gradient(circle at top left, rgba(0,255,153,.12), transparent 40%),
+        radial-gradient(circle at top left,
+        rgba(0,255,153,.12),
+        transparent 40%),
         rgba(0,0,0,.88) !important;
     backdrop-filter: blur(8px);
 }
@@ -401,7 +257,7 @@ body {
     box-shadow: 0 15px 50px rgba(0,0,0,.45);
 }
 
-/* ── CASHADS ── */
+/* CASHADS */
 .cashads-chip {
     background: rgba(0,255,153,.10) !important;
     border: 1px solid rgba(0,255,153,.25);
@@ -409,15 +265,26 @@ body {
     border-radius: 999px;
 }
 
-.cashads-title  { color: #ffffff !important; font-weight: 700; }
+.cashads-title {
+    color: #ffffff !important;
+    font-weight: 700;
+}
+
 .cashads-copy,
-.cashads-note   { color: rgba(255,255,255,.72) !important; }
+.cashads-note {
+    color: rgba(255,255,255,.72) !important;
+}
 
 .cashads-btn {
-    background: linear-gradient(135deg, #00ff99, #00c97a) !important;
+    background: linear-gradient(
+        135deg,
+        #00ff99,
+        #00c97a
+    ) !important;
     color: #04120b !important;
     border-radius: 12px !important;
-    box-shadow: 0 10px 30px rgba(0,255,153,.28) !important;
+    box-shadow:
+        0 10px 30px rgba(0,255,153,.28) !important;
     transition: .25s ease;
 }
 
@@ -429,306 +296,220 @@ body {
 </head>
 <body>
 
-    <!-- ── THUMB / POSTER OVERLAY ── -->
-    <div id="thumb-overlay">
-        <div id="thumb-bg"></div>
-
-        <!-- loader enquanto captura o frame -->
-        <div id="thumb-loading">
-            <div class="dots">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
-            <span></span>
-        </div>
-
-        <!-- botão play -->
-        <div id="play-btn"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" data-poster="" class="poster-icon" style=""><path fill="#010101" d="M1.425.35L14.575 8l-13.15 7.65V.35z"></path></svg></div>
-
-        <!-- badge LIVE -->
-        <div id="live-badge">
-            <div class="dot-live"></div>
-            AO VIVO
-        </div>
-    </div>
-
-    <!-- ── PLAYER CONTAINER ── -->
     <div class="player_screen">
-        <div class="player_container">
+        <div class="player_container visible">
             <div id="video"></div>
         </div>
     </div>
 
 <script>
-/* ─────────────────────────────────────────────
-   UTILITÁRIOS
-───────────────────────────────────────────── */
 function getParam(name) {
-    return new URLSearchParams(window.location.search).get(name);
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
 }
 
 const id = getParam("id");
 
 if (!id) {
-    document.body.innerHTML = '<div style="color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;font-size:18px;">Canal não informado</div>';
+    document.body.innerHTML = "Canal não informado";
     throw new Error("ID não informado");
 }
 
 const source = `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${id}.m3u8`;
 
-/* ─────────────────────────────────────────────
-   ESTADO
-───────────────────────────────────────────── */
 let data = {
-    id     : id,
-    image  : "",
-    stream : source,
-    p2p    : null,
-    player : null
+    id: id,
+    image: "",
+    stream: source,
+    p2p: null,
+    player: null
 };
 
 let stats = {
-    connectedPeers : 0,
-    totalSegments  : 0,
-    p2pSegments    : 0,
-    httpSegments   : 0,
+    connectedPeers: 0,
+    totalSegments: 0,
+    p2pSegments: 0,
+    httpSegments: 0,
+
     get loadPercent() {
         if (this.totalSegments === 0) return 0;
-        return ((this.p2pSegments / this.totalSegments) * 100).toFixed(1);
+
+        return (
+            (this.p2pSegments / this.totalSegments) * 100
+        ).toFixed(1);
     }
 };
 
-/* ─────────────────────────────────────────────
-   CAPTURA FRAME DO STREAM (via HLS + canvas)
-───────────────────────────────────────────── */
-function captureStreamFrame(src, onFrame) {
-    // Cria um <video> oculto, carrega o stream e tira screenshot via canvas
-    const vid = document.createElement("video");
-    vid.crossOrigin   = "anonymous";
-    vid.muted         = true;
-    vid.playsInline   = true;
-    vid.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;";
-    document.body.appendChild(vid);
-
-    // Usa Hls.js embutido no Clappr se disponível, ou nativo
-    let hlsInstance = null;
-
-    function tryNative() {
-        vid.src = src;
-    }
-
-    if (window.Hls && Hls.isSupported()) {
-        hlsInstance = new Hls({
-            maxBufferLength       : 4,
-            maxMaxBufferLength    : 8,
-            startLevel            : 0,
-            autoStartLoad         : true,
-            lowLatencyMode        : true,
-            startFragPrefetch     : true
-        });
-        hlsInstance.loadSource(src);
-        hlsInstance.attachMedia(vid);
-    } else {
-        tryNative();
-    }
-
-    let captured = false;
-
-    function doCapture() {
-        if (captured) return;
-        captured = true;
-
-        const canvas  = document.createElement("canvas");
-        canvas.width  = vid.videoWidth  || 1280;
-        canvas.height = vid.videoHeight || 720;
-        const ctx = canvas.getContext("2d");
-
-        try {
-            ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-
-            // Verifica se não é frame totalmente preto (pode acontecer)
-            const imgData = ctx.getImageData(0, 0, Math.min(canvas.width, 100), Math.min(canvas.height, 100));
-            let sum = 0;
-            for (let i = 0; i < imgData.data.length; i += 4) sum += imgData.data[i] + imgData.data[i+1] + imgData.data[i+2];
-
-            if (sum < 500 && !dataUrl.startsWith("data:image")) {
-                // Frame preto — tenta de novo em 1s
-                captured = false;
-                setTimeout(() => {
-                    if (!captured) requestAnimationFrame(doCapture);
-                }, 1000);
-                return;
-            }
-
-            onFrame(dataUrl, true);
-        } catch (e) {
-            // CORS ou erro — notifica sem imagem
-            onFrame(null, false);
-        } finally {
-            vid.pause();
-            vid.src = "";
-            if (hlsInstance) hlsInstance.destroy();
-            document.body.removeChild(vid);
-        }
-    }
-
-    // Tenta capturar quando tiver dados suficientes
-    vid.addEventListener("timeupdate", function onTimeUpdate() {
-        if (vid.currentTime > 0.5) {
-            vid.removeEventListener("timeupdate", onTimeUpdate);
-            doCapture();
-        }
-    });
-
-    vid.addEventListener("canplay", () => {
-        vid.play().catch(() => {});
-    });
-
-    // Fallback: timeout de 8 segundos
-    setTimeout(() => {
-        if (!captured) {
-            captured = true;
-            onFrame(null, false);
-            vid.pause();
-            vid.src = "";
-            if (hlsInstance) { try { hlsInstance.destroy(); } catch(e){} }
-            try { document.body.removeChild(vid); } catch(e){}
-        }
-    }, 8000);
-
-    // Tenta dar play
-    const playPromise = vid.play();
-    if (playPromise) playPromise.catch(() => {});
-}
-
-/* ─────────────────────────────────────────────
-   CONFIGURA O OVERLAY DE THUMB
-───────────────────────────────────────────── */
-function setupThumbOverlay(frameUrl) {
-    const overlay  = document.getElementById("thumb-overlay");
-    const bg       = document.getElementById("thumb-bg");
-    const loading  = document.getElementById("thumb-loading");
-    const playBtn  = document.getElementById("play-btn");
-    const badge    = document.getElementById("live-badge");
-
-    if (frameUrl) {
-        bg.style.backgroundImage = `url("${frameUrl}")`;
-    } else {
-        // Sem frame: fundo escuro sólido com gradiente sutil
-        bg.style.background = "radial-gradient(ellipse at 30% 40%, rgba(0,40,22,0.45) 0%, #050709 70%)";
-    }
-
-    // Esconde loader e mostra play + badge
-    loading.style.display = "none";
-    playBtn.style.display = "flex";
-    badge.style.display   = "flex";
-
-    // Clique no overlay dispara o player
-    overlay.addEventListener("click", function onOverlayClick() {
-        overlay.removeEventListener("click", onOverlayClick);
-        overlay.classList.add("hidden");
-        setTimeout(() => { overlay.style.display = "none"; }, 420);
-        startPlayer(source);
-    }, { once: true });
-}
-
-/* ─────────────────────────────────────────────
-   PLAYER CLAPPR + P2P
-───────────────────────────────────────────── */
 function startPlayer(src) {
 
-    // ── P2P ──
     try {
+
         const p2pConfig = {
-            segments: { swarmId: "canal_" + data.id },
+
+            segments: {
+                swarmId: "canal_" + data.id
+            },
+
             loader: {
+
                 trackerAnnounce: [
                     'wss://tracker.openwebtorrent.com',
                     'wss://tracker.novage.com.ua/announce',
                     'wss://tracker.webtorrent.dev/announce'
                 ],
+
                 rtcConfig: {
                     iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:stun.cloudflare.com:3478' }
+                        {
+                            urls: 'stun:stun.l.google.com:19302'
+                        },
+                        {
+                            urls: 'stun:stun1.l.google.com:19302'
+                        },
+                        {
+                            urls: 'stun:stun.cloudflare.com:3478'
+                        }
                     ]
                 },
-                httpDownloadEnabled      : true,
-                httpDownloadProbability  : 0.10,
-                maxPeers                 : 80,
-                simultaneousP2PDownloads : 12,
-                downloadTimeout          : 10000,
-                cachedSegmentExpiration  : 20 * 60 * 1000,
-                cachedSegmentsCount      : 800
+
+                httpDownloadEnabled: true,
+                httpDownloadProbability: 0.10,
+
+                maxPeers: 80,
+                simultaneousP2PDownloads: 12,
+                downloadTimeout: 10000,
+
+                cachedSegmentExpiration: 20 * 60 * 1000,
+                cachedSegmentsCount: 800
             }
         };
 
         data.p2p = new p2pml.hlsjs.Engine(p2pConfig);
 
         data.p2p.on("peer_connect", (peer) => {
+
             stats.connectedPeers++;
-            console.log(`✅ Peer conectado: ${peer.id}`);
+
+            console.log(
+                `✅ Peer conectado: ${peer.id}`
+            );
+
         });
 
         data.p2p.on("peer_close", () => {
-            stats.connectedPeers = Math.max(0, stats.connectedPeers - 1);
+
+            stats.connectedPeers = Math.max(
+                0,
+                stats.connectedPeers - 1
+            );
+
         });
 
         data.p2p.on("segment_loaded", (segment, peerId) => {
+
             stats.totalSegments++;
+
             if (peerId) {
+
                 stats.p2pSegments++;
-                console.log("%cP2P", "color:lime", segment.url);
+
+                console.log(
+                    "%cP2P",
+                    "color:lime",
+                    segment.url
+                );
+
             } else {
+
                 stats.httpSegments++;
-                console.log("%cHTTP", "color:orange", segment.url);
+
+                console.log(
+                    "%cHTTP",
+                    "color:orange",
+                    segment.url
+                );
             }
-            console.log(`📊 Peers: ${stats.connectedPeers} | P2P: ${stats.loadPercent}%`);
+
+            console.log(
+                `📊 Peers: ${stats.connectedPeers} | P2P: ${stats.loadPercent}%`
+            );
+
         });
 
     } catch (err) {
-        console.warn("❌ Falha ao inicializar P2P:", err);
+
+        console.warn(
+            "❌ Falha ao inicializar P2P:",
+            err
+        );
+
         data.p2p = null;
     }
 
-    // ── CLAPPR ──
     data.player = new Clappr.Player({
-        parentId : "#video",
-        source   : src,
-        mimeType : "application/x-mpegURL",
-        autoPlay : true,
-        mute     : false,
-        width    : "100%",
-        height   : "100%",
-        preload  : "auto",
 
-        plugins  : [ChromecastPlugin],
+        parentId: "#video",
+
+        source: src,
+
+        mimeType: "application/x-mpegURL",
+
+        autoPlay: true,
+
+        mute: false,
+
+        width: "100%",
+
+        height: "100%",
+
+        preload: "auto",
+
+        plugins: [ChromecastPlugin],
+
         chromecast: {
-            appId : "9DFB77C0",
-            media : { title: id, subtitle: "Live" }
+
+            appId: "9DFB77C0",
+
+            media: {
+                title: id,
+                subtitle: "Live"
+            }
         },
 
         playback: {
-            playInline  : true,
-            hlsjsConfig : {
-                loader                   : data.p2p ? data.p2p.createLoaderClass() : undefined,
-                liveSyncDurationCount    : 2,
-                liveMaxLatencyDurationCount : 3,
-                maxBufferLength          : 20,
-                maxMaxBufferLength       : 40,
-                backBufferLength         : 0,
-                startLevel               : -1,
-                autoStartLoad            : true,
-                maxBufferHole            : 0.5,
-                highBufferWatchdogPeriod : 2,
-                fragLoadingMaxRetry      : 5,
-                fragLoadingRetryDelay    : 1000,
+
+            playInline: true,
+
+            hlsjsConfig: {
+
+                loader: data.p2p
+                    ? data.p2p.createLoaderClass()
+                    : undefined,
+
+                liveSyncDurationCount: 2,
+                liveMaxLatencyDurationCount: 3,
+
+                maxBufferLength: 20,
+                maxMaxBufferLength: 40,
+
+                backBufferLength: 0,
+
+                startLevel: -1,
+
+                autoStartLoad: true,
+
+                maxBufferHole: 0.5,
+
+                highBufferWatchdogPeriod: 2,
+
+                fragLoadingMaxRetry: 5,
+                fragLoadingRetryDelay: 1000,
+
                 manifestLoadingRetryDelay: 1000,
-                lowLatencyMode           : true,
-                abrEwmaDefaultEstimate   : 500000
+
+                lowLatencyMode: true,
+
+                abrEwmaDefaultEstimate: 500000
             }
         }
     });
@@ -737,31 +518,61 @@ function startPlayer(src) {
         p2pml.hlsjs.initClapprPlayer(data.player);
     }
 
-    // Autoplay muted → unmute após 1s
     data.player.on(Clappr.Events.PLAYER_READY, () => {
+
         const video = document.querySelector("video");
+
         if (!video) return;
+
         video.muted = true;
-        video.play()
-            .then(() => {
-                setTimeout(() => {
-                    video.muted = false;
-                    data.player.setVolume(100);
-                }, 1000);
-            })
-            .catch(err => console.log("Autoplay bloqueado:", err));
+
+        video.play().then(() => {
+
+            setTimeout(() => {
+
+                video.muted = false;
+
+                data.player.setVolume(100);
+
+            }, 1000);
+
+        }).catch(err => {
+
+            console.log(
+                "Autoplay bloqueado:",
+                err
+            );
+
+        });
+
     });
 
-    // Reconexão automática em erro
-    data.player.on(Clappr.Events.PLAYER_ERROR, () => {
-        console.log("❌ Erro no stream, reconectando...");
-        setTimeout(() => {
-            data.player.configure({ source: source + "?v=" + Date.now() });
-            data.player.play();
-        }, 3000);
-    });
+    data.player.on(
+        Clappr.Events.PLAYER_ERROR,
+        () => {
 
-    // Botão refresh
+            console.log(
+                "❌ Erro no stream, reconectando..."
+            );
+
+            setTimeout(() => {
+
+                data.player.configure({
+
+                    source:
+                        source +
+                        "?v=" +
+                        Date.now()
+
+                });
+
+                data.player.play();
+
+            }, 3000);
+
+        }
+    );
+
     $("[data-player]").append(
         '<a onclick="data.player.stop();data.player.play();" href="#" class="refresh">Travou? <b>Clique Aqui</b></a>'
     );
@@ -769,19 +580,22 @@ function startPlayer(src) {
     data.player.play();
 
     setInterval(() => {
-        if ($(".media-control-hide").length) $(".refresh").hide();
-        else $(".refresh").show();
+
+        if ($(".media-control-hide").length)
+            $(".refresh").hide();
+        else
+            $(".refresh").show();
+
     }, 200);
+
 }
 
-/* ─────────────────────────────────────────────
-   INIT — captura frame, depois aguarda clique
-───────────────────────────────────────────── */
 $(function () {
-    captureStreamFrame(source, function (frameUrl, success) {
-        setupThumbOverlay(success ? frameUrl : null);
-    });
+
+    startPlayer(source);
+
 });
+
 </script>
 
 </body>

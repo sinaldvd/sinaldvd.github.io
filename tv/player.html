@@ -47,130 +47,247 @@ body{
 <body>
 
 <div id="player"></div>
-
+  
 <script>
-(function () {
+function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+}
 
-    const params = new URLSearchParams(window.location.search);
+const id = getParam("id");
 
-    const canalId =
-        params.get("id") ||
-        params.get("canal");
+if (!id) {
+    document.body.innerHTML = "Canal não informado";
+    throw new Error("ID não informado");
+}
 
-    if (!canalId) {
+const source =
+    `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${id}.m3u8`;
 
-        document.body.innerHTML = `
-            <div style="
-                color:white;
-                width:100%;
-                height:100vh;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-family:Arial;
-                text-align:center;">
-                Canal não informado<br>
-                Use ?id=canal
-            </div>
-        `;
+let data = {
+    id: id,
+    image: "",
+    stream: source,
+    p2p: null,
+    player: null
+};
 
-        return;
+let stats = {
+    connectedPeers: 0,
+    totalSegments: 0,
+    p2pSegments: 0,
+    httpSegments: 0,
+
+    get loadPercent() {
+        if (!this.totalSegments) return 0;
+
+        return (
+            (this.p2pSegments / this.totalSegments) * 100
+        ).toFixed(1);
     }
+};
 
-    const source =
-        `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`;
+function startPlayer(src) {
 
-    const poster =
-        `https://img.faz-o-eli.online/${canalId}.prev.png`;
+    try {
+
+        if (
+            typeof p2pml !== "undefined" &&
+            p2pml.hlsjs &&
+            p2pml.hlsjs.Engine
+        ) {
+
+            data.p2p =
+                new p2pml.hlsjs.Engine({
+
+                    segments: {
+                        swarmId: "canal_" + data.id
+                    },
+
+                    loader: {
+
+                        trackerAnnounce: [
+                            "wss://tracker.openwebtorrent.com",
+                            "wss://tracker.novage.com.ua/announce",
+                            "wss://tracker.webtorrent.dev/announce"
+                        ],
+
+                        maxPeers: 80,
+                        simultaneousP2PDownloads: 12,
+
+                        httpDownloadEnabled: true,
+                        httpDownloadProbability: 0.10
+                    }
+                });
+
+            console.log("P2P iniciado");
+
+        }
+
+    } catch (e) {
+
+        console.warn(
+            "P2P indisponível",
+            e
+        );
+
+        data.p2p = null;
+    }
 
     const plugins = [];
-
-    if (typeof ChromecastPlugin !== "undefined") {
-        plugins.push(ChromecastPlugin);
-    }
 
     if (
         typeof Clappr !== "undefined" &&
         Clappr.LevelSelector
     ) {
-        plugins.push(Clappr.LevelSelector);
+        plugins.push(
+            Clappr.LevelSelector
+        );
     }
 
     if (
         typeof Clappr !== "undefined" &&
         Clappr.Pip
     ) {
-        plugins.push(Clappr.Pip);
+        plugins.push(
+            Clappr.Pip
+        );
     }
 
-    const player = new Clappr.Player({
+    data.player =
+        new Clappr.Player({
 
-        parentId: "#player",
+            parentId: "#player",
 
-        source: source,
+            source: src,
 
-        poster: poster,
+            mimeType:
+                "application/x-mpegURL",
 
-        width: "100%",
+            autoPlay: true,
 
-        height: "100%",
+            mute: true,
 
-        autoPlay: false,
+            width: "100%",
 
-        mute: false,
+            height: "100%",
 
-        plugins: plugins,
+            preload: "auto",
 
-        playback: {
-            playInline: true,
-            recycleVideo: true
-        },
+            plugins: plugins,
 
-        mediacontrol: {
-            seekbar: "#ff1500",
-            buttons: "#ffffff"
-        },
+            playback: {
 
-        chromecast: {
-            appId: "9DFB77C0",
-            media: {
-                title: canalId,
-                subtitle: "Live"
+                playInline: true,
+
+                hlsjsConfig: {
+
+                    loader:
+                        data.p2p
+                            ? data.p2p.createLoaderClass()
+                            : undefined,
+
+                    lowLatencyMode: true,
+
+                    liveSyncDurationCount: 2,
+
+                    liveMaxLatencyDurationCount: 3,
+
+                    maxBufferLength: 20,
+
+                    maxMaxBufferLength: 40,
+
+                    backBufferLength: 0,
+
+                    autoStartLoad: true,
+
+                    startLevel: -1,
+
+                    fragLoadingMaxRetry: 5,
+
+                    fragLoadingRetryDelay: 1000
+                }
             }
-        }
-    });
+        });
 
-    player.on(
+    if (
+        data.p2p &&
+        p2pml.hlsjs.initClapprPlayer
+    ) {
+
+        p2pml.hlsjs.initClapprPlayer(
+            data.player
+        );
+    }
+
+    data.player.on(
+        Clappr.Events.PLAYER_READY,
+        () => {
+
+            const video =
+                document.querySelector(
+                    "video"
+                );
+
+            if (!video) return;
+
+            video.play()
+                .then(() => {
+
+                    setTimeout(() => {
+
+                        video.muted = false;
+
+                        if (
+                            data.player.setVolume
+                        ) {
+                            data.player.setVolume(
+                                100
+                            );
+                        }
+
+                    }, 1000);
+
+                })
+                .catch(console.log);
+        }
+    );
+
+    data.player.on(
         Clappr.Events.PLAYER_ERROR,
-        function () {
+        () => {
 
             console.log(
-                "Erro detectado. Reconectando..."
+                "Erro no stream. Reconectando..."
             );
 
-            setTimeout(function () {
+            setTimeout(() => {
 
-                player.configure({
-                    source: source
+                data.player.configure({
+                    source:
+                        source +
+                        "?v=" +
+                        Date.now()
                 });
+
+                data.player.play();
 
             }, 3000);
         }
     );
 
-    window.addEventListener(
-        "online",
-        function () {
+    data.player.play();
+}
 
-            player.configure({
-                source: source
-            });
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
 
-        }
-    );
+        startPlayer(source);
 
-})();
+    }
+);
 </script>
+
 
 </body>
 </html>

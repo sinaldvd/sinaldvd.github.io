@@ -3,28 +3,21 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Player</title>
-    <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
-    <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://code.jquery.com" crossorigin>
-    <link rel="preconnect" href="https://challenges.cloudflare.com" crossorigin>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/clappr@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
-    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-    <script type="text/javascript" src="https://ssl.p.jwpcdn.com/player/v/8.19.1/jwplayer.js"></script>
-    <script type="text/javascript"> jwplayer.key = "64HPbvSQorQcd52B8XFuhMtEoitbvY/EXJmMBfKcXZQU2Rnn"; </script>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
+<link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
+<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+<script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script type="text/javascript" src="https://ssl.p.jwpcdn.com/player/v/8.19.1/jwplayer.js"></script>
+<script type="text/javascript"> jwplayer.key = "64HPbvSQorQcd52B8XFuhMtEoitbvY/EXJmMBfKcXZQU2Rnn"; </script>
 <style>
 html,
 body{
@@ -37,6 +30,8 @@ body{
 }
 
 #player{
+    position:fixed;
+    inset:0;
     width:100%;
     height:100%;
 }
@@ -45,6 +40,13 @@ body{
 .seek-disabled{
     display:none !important;
 }
+
+video{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    background:#000;
+}
 </style>
 </head>
 <body>
@@ -52,7 +54,7 @@ body{
 <div id="player"></div>
 
 <script>
-(function () {
+(function(){
 
     const params = new URLSearchParams(window.location.search);
 
@@ -60,42 +62,24 @@ body{
         params.get("id") ||
         params.get("canal");
 
-    if (!canalId) {
+    if(!canalId){
 
         document.body.innerHTML = `
-            <div style="
-                width:100%;
-                height:100vh;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                flex-direction:column;
-                color:#fff;
-                background:#000;
-                font-family:Arial,sans-serif;
-                text-align:center;
-                padding:20px;">
-                <div style="font-size:24px;font-weight:bold;">
-                    Canal não informado
-                </div>
-                <div style="margin-top:10px;">
-                    Use ?id=canal
-                </div>
-            </div>
-        `;
+        <div style="
+            width:100%;
+            height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            flex-direction:column;
+            color:#fff;
+            background:#000;
+            font-family:Arial,sans-serif;
+            text-align:center;">
+            <h2>Canal não informado</h2>
+            <span>Use ?id=canal</span>
+        </div>`;
 
-        return;
-    }
-
-    if (typeof Clappr === "undefined") {
-        console.error("Clappr não carregado");
-        return;
-    }
-
-    const playerElement = document.getElementById("player");
-
-    if (!playerElement) {
-        console.error("Elemento #player não encontrado");
         return;
     }
 
@@ -105,76 +89,78 @@ body{
     const poster =
         `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
 
-    const plugins = [];
-
-    if (typeof ChromecastPlugin !== "undefined") {
-        plugins.push(ChromecastPlugin);
-    }
-
-    if (
-        typeof Clappr.LevelSelector !== "undefined"
-    ) {
-        plugins.push(Clappr.LevelSelector);
-    }
-
-    if (
-        typeof Clappr.Pip !== "undefined"
-    ) {
-        plugins.push(Clappr.Pip);
-    }
-
     let player;
+    let reconnectTimer;
 
-    function createPlayer() {
+    function createPlayer(){
 
-        if (player) {
+        if(player){
             player.destroy();
+        }
+
+        const plugins = [];
+
+        if(typeof ChromecastPlugin !== "undefined"){
+            plugins.push(ChromecastPlugin);
         }
 
         player = new Clappr.Player({
 
-            parentId: "#player",
+            parentId:"#player",
 
-            source: source,
+            source:source,
 
-            poster: poster,
+            poster:poster,
 
-            width: "100%",
+            width:"100%",
 
-            height: "100%",
+            height:"100%",
 
-            autoPlay: false,
+            autoPlay:false,
 
-            mute: false,
+            mute:false,
 
-            plugins: plugins,
+            plugins:plugins,
 
-            playback: {
-                playInline: true,
-                recycleVideo: true
+            playback:{
+                playInline:true,
+                recycleVideo:true,
+
+                hlsjsConfig:{
+
+                    enableWorker:true,
+
+                    lowLatencyMode:true,
+
+                    liveSyncDurationCount:3,
+
+                    liveMaxLatencyDurationCount:10,
+
+                    maxBufferLength:20,
+
+                    maxMaxBufferLength:30,
+
+                    maxBufferHole:0.5,
+
+                    backBufferLength:30
+                }
             },
 
-            mediacontrol: {
-                seekbar: "#ff1500",
-                buttons: "#ffffff"
-            },
-
-            chromecast: {
-                appId: "9DFB77C0",
-                media: {
-                    title: canalId,
-                    subtitle: "Live TV"
+            chromecast:{
+                appId:"9DFB77C0",
+                media:{
+                    title:canalId,
+                    subtitle:"Live TV"
                 }
             }
-
         });
 
         player.on(
             Clappr.Events.PLAYER_ERROR,
-            function(error) {
+            function(error){
 
                 console.log(
-                    "Erro no player:",
+                    "Erro detectado:",
                     error
                 );
 
@@ -184,7 +170,7 @@ body{
 
         player.on(
             Clappr.Events.PLAYER_STOP,
-            function() {
+            function(){
 
                 reconnect();
 
@@ -192,55 +178,22 @@ body{
         );
     }
 
-    let reconnectTimer = null;
+    function reconnect(){
 
-    function reconnect() {
-
-        clearTimeout(reconnectTimer);
-
-        reconnectTimer = setTimeout(
-            function() {
-
-                console.log(
-                    "Reconectando stream..."
-                );
-
-                createPlayer();
-
-            },
-            3000
+        clearTimeout(
+            reconnectTimer
         );
+
+        reconnectTimer =
+            setTimeout(
+                createPlayer,
+                3000
+            );
     }
 
     window.addEventListener(
         "online",
-        function() {
-
-            console.log(
-                "Internet restaurada"
-            );
-
-            createPlayer();
-
-        }
-    );
-
-    document.addEventListener(
-        "visibilitychange",
-        function() {
-
-            if (
-                !document.hidden &&
-                player
-            ) {
-
-                player.resize({
-                    width: "100%",
-                    height: "100%"
-                });
-
-            }
-        }
+        createPlayer
     );
 
     createPlayer();

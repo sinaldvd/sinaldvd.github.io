@@ -64,19 +64,38 @@ body{
 
         document.body.innerHTML = `
             <div style="
-                color:white;
                 width:100%;
                 height:100vh;
                 display:flex;
                 align-items:center;
                 justify-content:center;
-                font-family:Arial;
-                text-align:center;">
-                Canal não informado<br>
-                Use ?id=canal
+                flex-direction:column;
+                color:#fff;
+                background:#000;
+                font-family:Arial,sans-serif;
+                text-align:center;
+                padding:20px;">
+                <div style="font-size:24px;font-weight:bold;">
+                    Canal não informado
+                </div>
+                <div style="margin-top:10px;">
+                    Use ?id=canal
+                </div>
             </div>
         `;
 
+        return;
+    }
+
+    if (typeof Clappr === "undefined") {
+        console.error("Clappr não carregado");
+        return;
+    }
+
+    const playerElement = document.getElementById("player");
+
+    if (!playerElement) {
+        console.error("Elemento #player não encontrado");
         return;
     }
 
@@ -93,84 +112,138 @@ body{
     }
 
     if (
-        typeof Clappr !== "undefined" &&
-        Clappr.LevelSelector
+        typeof Clappr.LevelSelector !== "undefined"
     ) {
         plugins.push(Clappr.LevelSelector);
     }
 
     if (
-        typeof Clappr !== "undefined" &&
-        Clappr.Pip
+        typeof Clappr.Pip !== "undefined"
     ) {
         plugins.push(Clappr.Pip);
     }
 
-    const player = new Clappr.Player({
+    let player;
 
-        parentId: "#player",
+    function createPlayer() {
 
-        source: source,
+        if (player) {
+            player.destroy();
+        }
 
-        poster: poster,
+        player = new Clappr.Player({
 
-        width: "100%",
+            parentId: "#player",
 
-        height: "100%",
+            source: source,
 
-        autoPlay: false,
+            poster: poster,
 
-        mute: false,
+            width: "100%",
 
-        plugins: plugins,
+            height: "100%",
 
-        playback: {
-            playInline: true,
-            recycleVideo: true
-        },
+            autoPlay: false,
 
-        mediacontrol: {
-            seekbar: "#ff1500",
-            buttons: "#ffffff"
-        },
+            mute: false,
 
-        chromecast: {
-            appId: "9DFB77C0",
-            media: {
-                title: canalId,
-                subtitle: "Live"
+            plugins: plugins,
+
+            playback: {
+                playInline: true,
+                recycleVideo: true
+            },
+
+            mediacontrol: {
+                seekbar: "#ff1500",
+                buttons: "#ffffff"
+            },
+
+            chromecast: {
+                appId: "9DFB77C0",
+                media: {
+                    title: canalId,
+                    subtitle: "Live TV"
+                }
             }
-        }
-    });
 
-    player.on(
-        Clappr.Events.PLAYER_ERROR,
-        function () {
+        });
 
-            console.log(
-                "Erro detectado. Reconectando..."
-            );
+        player.on(
+            Clappr.Events.PLAYER_ERROR,
+            function(error) {
 
-            setTimeout(function () {
+                console.log(
+                    "Erro no player:",
+                    error
+                );
 
-                player.configure({
-                    source: source
-                });
+                reconnect();
+            }
+        );
 
-            }, 3000);
-        }
-    );
+        player.on(
+            Clappr.Events.PLAYER_STOP,
+            function() {
+
+                reconnect();
+
+            }
+        );
+    }
+
+    let reconnectTimer = null;
+
+    function reconnect() {
+
+        clearTimeout(reconnectTimer);
+
+        reconnectTimer = setTimeout(
+            function() {
+
+                console.log(
+                    "Reconectando stream..."
+                );
+
+                createPlayer();
+
+            },
+            3000
+        );
+    }
 
     window.addEventListener(
         "online",
-        function () {
+        function() {
 
-            player.configure({
-                source: source
-            });
+            console.log(
+                "Internet restaurada"
+            );
+
+            createPlayer();
 
         }
     );
+
+    document.addEventListener(
+        "visibilitychange",
+        function() {
+
+            if (
+                !document.hidden &&
+                player
+            ) {
+
+                player.resize({
+                    width: "100%",
+                    height: "100%"
+                });
+
+            }
+        }
+    );
+
+    createPlayer();
 
 })();
 </script>

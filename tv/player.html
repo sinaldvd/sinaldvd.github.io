@@ -79,15 +79,11 @@ video{
         return;
     }
 
-    // ==========================================================
-    // LISTA DE LINKS (FONTES) PARA TENTAR EM ORDEM
-    // ==========================================================
     const sources = [
-        `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`,
-        `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}?=log.m3u8`
+        `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}?=log.m3u8`,
+        `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`
     ];
 
-    // ÍNDICE QUE CONTROLA QUAL LINK ESTÁ SENDO USADO (COMEÇA NO 0)
     let currentSourceIndex = 0;
 
     const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
@@ -154,19 +150,16 @@ video{
             }
         });
 
-        // SE DER ERRO GERAL NO PLAYER, CHAMA A FUNÇÃO DE TROCAR O LINK
         player.on(Clappr.Events.PLAYER_ERROR, function(error){
             console.log("Erro detectado no player, alternando fonte...", error);
             reconnect();
         });
 
-        // SE O PLAYBACK PARAR OU FALHAR, TENTA O PRÓXIMO LINK
         player.on(Clappr.Events.PLAYER_STOP, function(){
             console.log("Playback parado, alternando fonte...");
             reconnect();
         });
         
-        // CAPTURA ERROS ESPECÍFICOS DO HLS PARA TROCA MAIS RÁPIDA
         player.on(Clappr.Events.PLAYBACK_ERROR, function(error) {
              console.log("Erro de decodificação HLS, alternando fonte...");
              reconnect();
@@ -176,8 +169,6 @@ video{
     function reconnect(){
         clearTimeout(reconnectTimer);
         
-        // AVANÇA PARA O PRÓXIMO LINK NA LISTA. 
-        // O "% sources.length" faz com que, se chegar no último, ele volte para o primeiro (loop).
         currentSourceIndex = (currentSourceIndex + 1) % sources.length;
         
         console.log("Tentando próxima fonte em 3 segundos. Índice:", currentSourceIndex);
@@ -185,14 +176,12 @@ video{
         reconnectTimer = setTimeout(createPlayer, 3000);
     }
 
-    // SE A INTERNET CAIR E VOLTAR, RESETA PARA O PRIMEIRO LINK E RECARREGA
     window.addEventListener("online", function(){
         console.log("Conexão restaurada. Resetando para a fonte principal.");
         currentSourceIndex = 0;
         createPlayer();
     });
 
-    // INICIA O PLAYER
     createPlayer();
 
 })();

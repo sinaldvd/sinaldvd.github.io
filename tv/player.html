@@ -58,9 +58,12 @@ video{
 
     const params = new URLSearchParams(window.location.search);
 
-    const canalId = params.get("id") || params.get("canal");
+    const canalId =
+        params.get("id") ||
+        params.get("canal");
 
     if(!canalId){
+
         document.body.innerHTML = `
         <div style="
             width:100%;
@@ -76,17 +79,15 @@ video{
             <h2>Canal não informado</h2>
             <span>Use ?id=canal</span>
         </div>`;
+
         return;
     }
 
-    const sources = [
-        `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}?=log.m3u8`,
-        `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`
-    ];
+    const source =
+        `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}?=log.m3u8`;
 
-    let currentSourceIndex = 0;
-
-    const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
+    const poster =
+        `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
 
     let player;
     let reconnectTimer;
@@ -97,10 +98,6 @@ video{
             player.destroy();
         }
 
-        // PEGA O LINK ATUAL BASEADO NO ÍNDICE
-        const currentSource = sources[currentSourceIndex];
-        console.log("Tentando carregar fonte:", currentSource);
-
         const plugins = [];
 
         if(typeof ChromecastPlugin !== "undefined"){
@@ -109,82 +106,100 @@ video{
 
         player = new Clappr.Player({
 
-            parentId: "#player",
+            parentId:"#player",
 
-            source: currentSource, // USA O LINK ATUAL DA LISTA
+            source:source,
 
-            poster: poster,
+            poster:poster,
 
-            width: "100%",
+            width:"100%",
 
-            height: "100%",
+            height:"100%",
 
-            autoPlay: true,
+            autoPlay:false,
 
-            mute: false,
+            mute:false,
 
-            plugins: plugins,
+            plugins:plugins,
 
-            playback: {
-                playInline: true,
-                recycleVideo: true,
+            playback:{
+                playInline:true,
+                recycleVideo:true,
 
-                hlsjsConfig: {
-                    enableWorker: true,
-                    lowLatencyMode: true,
-                    liveSyncDurationCount: 3,
-                    liveMaxLatencyDurationCount: 10,
-                    maxBufferLength: 20,
-                    maxMaxBufferLength: 30,
-                    maxBufferHole: 0.5,
-                    backBufferLength: 30
+                hlsjsConfig:{
+
+                    enableWorker:true,
+
+                    lowLatencyMode:true,
+
+                    liveSyncDurationCount:3,
+
+                    liveMaxLatencyDurationCount:10,
+
+                    maxBufferLength:20,
+
+                    maxMaxBufferLength:30,
+
+                    maxBufferHole:0.5,
+
+                    backBufferLength:30
                 }
             },
 
-            chromecast: {
-                appId: "9DFB77C0",
-                media: {
-                    title: canalId,
-                    subtitle: "Live TV"
+            chromecast:{
+                appId:"9DFB77C0",
+                media:{
+                    title:canalId,
+                    subtitle:"Live TV"
                 }
             }
         });
 
-        player.on(Clappr.Events.PLAYER_ERROR, function(error){
-            console.log("Erro detectado no player, alternando fonte...", error);
-            reconnect();
-        });
+        player.on(
+            Clappr.Events.PLAYER_ERROR,
+            function(error){
 
-        player.on(Clappr.Events.PLAYER_STOP, function(){
-            console.log("Playback parado, alternando fonte...");
-            reconnect();
-        });
-        
-        player.on(Clappr.Events.PLAYBACK_ERROR, function(error) {
-             console.log("Erro de decodificação HLS, alternando fonte...");
-             reconnect();
-        });
+                console.log(
+                    "Erro detectado:",
+                    error
+                );
+
+                reconnect();
+            }
+        );
+
+        player.on(
+            Clappr.Events.PLAYER_STOP,
+            function(){
+
+                reconnect();
+
+            }
+        );
     }
 
     function reconnect(){
-        clearTimeout(reconnectTimer);
-        
-        currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-        
-        console.log("Tentando próxima fonte em 3 segundos. Índice:", currentSourceIndex);
-        
-        reconnectTimer = setTimeout(createPlayer, 3000);
+
+        clearTimeout(
+            reconnectTimer
+        );
+
+        reconnectTimer =
+            setTimeout(
+                createPlayer,
+                3000
+            );
     }
 
-    window.addEventListener("online", function(){
-        console.log("Conexão restaurada. Resetando para a fonte principal.");
-        currentSourceIndex = 0;
-        createPlayer();
-    });
+    window.addEventListener(
+        "online",
+        createPlayer
+    );
 
     createPlayer();
 
 })();
 </script>
+
 </body>
 </html>

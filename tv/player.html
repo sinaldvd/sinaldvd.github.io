@@ -5,13 +5,16 @@
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Player</title>
 <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
-<link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
+<link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
 <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
+<link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+
+<!-- Player -->
 <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -20,35 +23,35 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script type="text/javascript" src="https://ssl.p.jwpcdn.com/player/v/8.19.1/jwplayer.js"></script>
 <script type="text/javascript"> jwplayer.key = "64HPbvSQorQcd52B8XFuhMtEoitbvY/EXJmMBfKcXZQU2Rnn"; </script>
+
 <style>
-html,
-body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    background:#000;
-}
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+    }
 
-#player{
-    position:fixed;
-    inset:0;
-    width:100%;
-    height:100%;
-}
+    #player {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+    }
 
-#svg-spinner,
-.seek-disabled{
-    display:none !important;
-}
+    #svg-spinner, .seek-disabled {
+        display: none !important;
+    }
 
-video{
-    width:100%;
-    height:100%;
-    object-fit:contain;
-    background:#000;
-}
+    video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #000;
+    }
 </style>
 </head>
 <body>
@@ -57,15 +60,14 @@ video{
 
 <script>
 (function(){
-
     const params = new URLSearchParams(window.location.search);
     const canalId = params.get("id") || params.get("canal");
 
-    if(!canalId){
+    if (!canalId) {
         document.body.innerHTML = `
-        <div style="width:100%; height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#fff; background:#000; font-family:Arial,sans-serif; text-align:center;">
+        <div style="width:100%;height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;background:#000;font-family:Arial,sans-serif;text-align:center;">
             <h2>Canal não informado</h2>
-            <span>Use ?id=canal</span>
+            <span>Use a URL com o parâmetro: ?id=nome_do_canal</span>
         </div>`;
         return;
     }
@@ -76,38 +78,45 @@ video{
         `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`  
     ];
 
-    let currentSourceIndex = 0; 
     const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
 
     let player;
-    let reconnectTimer;
-    let loadTimeout; 
+    let currentSourceIndex = 0;
+    let isSwitching = false;
+    let stallCheckerInterval = null;
 
-    function createPlayer(){
+    function switchSource() {
+        if (isSwitching) return;
+        isSwitching = true;
+        console.warn("[Player] Congelamento ou erro detectado. Alternando para próxima fonte silenciosamente...");
+        
 
-        clearTimeout(reconnectTimer);
-        clearTimeout(loadTimeout);
-
-        if(player){
+        currentSourceIndex = (currentSourceIndex + 1) % sources.length;
+        
+        if (player) {
             player.destroy();
         }
+        
 
+        setTimeout(() => {
+            createPlayer();
+            isSwitching = false;
+        }, 500);
+    }
 
-        const activeSource = sources[currentSourceIndex];
-        console.log(`[Player] Tentando carregar fonte ${currentSourceIndex + 1}:`, activeSource);
-
+    function createPlayer() {
         const plugins = [];
-        if(typeof ChromecastPlugin !== "undefined"){
+        if (typeof ChromecastPlugin !== "undefined") {
             plugins.push(ChromecastPlugin);
         }
 
         player = new Clappr.Player({
             parentId: "#player",
-            source: activeSource,
+            source: sources[currentSourceIndex],
             poster: poster,
             width: "100%",
             height: "100%",
-            autoPlay: true, 
+            autoPlay: true,
             mute: false,
             plugins: plugins,
             playback: {
@@ -121,68 +130,81 @@ video{
                     maxBufferLength: 20,
                     maxMaxBufferLength: 30,
                     maxBufferHole: 0.5,
-                    backBufferLength: 30
+                    backBufferLength: 30,
+                    startLevel: -1,
+                    capLevelToPlayerSize: true
                 }
             },
             chromecast: {
                 appId: "9DFB77C0",
                 media: {
                     title: canalId,
-                    subtitle: "Live TV"
+                    subtitle: "AOVIVO TV"
                 }
             }
         });
 
 
-        loadTimeout = setTimeout(() => {
-            console.log("[Player] Demorou muito para carregar (Timeout). Alternando fonte...");
-            reconnect();
-        }, 10000); 
-
-
-        player.on(Clappr.Events.PLAYER_PLAY, () => {
-            clearTimeout(loadTimeout);
-            console.log("[Player] Reprodução iniciada com sucesso.");
-        });
-        
-        player.on(Clappr.Events.PLAYER_READY, () => {
-            clearTimeout(loadTimeout);
+        player.on(Clappr.Events.PLAYBACK_ERROR, () => {
+            console.error("[Player] Erro de playback detectado.");
+            switchSource();
         });
 
 
-        player.on(Clappr.Events.PLAYER_ERROR, function(error){
-            console.log("[Player] Erro geral detectado, alternando fonte...", error);
-            reconnect();
+        player.on(Clappr.Events.PLAYER_ERROR, () => {
+            console.error("[Player] Erro geral do player detectado.");
+            switchSource();
         });
 
-        player.on(Clappr.Events.PLAYER_STOP, function(){
-            console.log("[Player] Playback parado inesperadamente, alternando fonte...");
-            reconnect();
-        });
 
-        player.on(Clappr.Events.PLAYBACK_ERROR, function(error){
-            console.log("[Player] Erro de decodificação HLS, alternando fonte...", error);
-            reconnect();
+        const checkVideoElement = setInterval(() => {
+            const container = player.core && player.core.getCurrentContainer();
+            const playback = container && container.playback;
+            const video = playback && playback.el && playback.el.tagName === 'VIDEO' ? playback.el : null;
+
+            if (video) {
+                clearInterval(checkVideoElement); 
+                let lastTime = video.currentTime;
+                let stallDuration = 0;
+
+                stallCheckerInterval = setInterval(() => {
+
+                    if (!video.paused && !video.ended && video.readyState >= 2) {
+
+                        if (Math.abs(video.currentTime - lastTime) < 0.05) {
+                            stallDuration += 1000;
+                            if (stallDuration >= 3000) {
+                                console.warn(`[Player] Congelamento confirmado por ${stallDuration}ms. Alternando fonte...`);
+                                clearInterval(stallCheckerInterval);
+                                switchSource();
+                            }
+                        } else {
+
+                            lastTime = video.currentTime;
+                            stallDuration = 0;
+                        }
+                    } else {
+
+                        stallDuration = 0;
+                        lastTime = video.currentTime;
+                    }
+                }, 1000);
+            }
+        }, 500);
+
+
+        player.on(Clappr.Events.PLAYER_DESTROY, () => {
+            if (stallCheckerInterval) {
+                clearInterval(stallCheckerInterval);
+                stallCheckerInterval = null;
+            }
         });
     }
 
-    function reconnect(){
-        clearTimeout(reconnectTimer);
-        clearTimeout(loadTimeout);
-        
 
-        currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-        
-        console.log(`[Player] Aguardando 3 segundos para tentar a fonte ${currentSourceIndex + 1}...`);
-        
-        reconnectTimer = setTimeout(createPlayer, 3000); 
-    }
-
-
-    window.addEventListener("online", function(){
-        console.log("[Player] Conexão restaurada. Resetando para a fonte principal.");
-        currentSourceIndex = 0;
-        createPlayer();
+    window.addEventListener("online", () => {
+        console.log("[Player] Conexão restaurada. Alternando fonte para garantir estabilidade...");
+        switchSource();
     });
 
 

@@ -83,6 +83,7 @@
     let stallChecker = null;
     let stallCount = 0;
     let lastTime = 0;
+    let loadTimeout = null;
 
     function switchSource() {
         if (isSwitching) return;
@@ -93,6 +94,10 @@
         if (stallChecker) {
             clearInterval(stallChecker);
             stallChecker = null;
+        }
+        if (loadTimeout) {
+            clearTimeout(loadTimeout);
+            loadTimeout = null;
         }
         
         currentSourceIndex = (currentSourceIndex + 1) % sources.length;
@@ -147,12 +152,21 @@
             }
         });
 
-        // 1. Troca em caso de erro real do player ou playback
+        loadTimeout = setTimeout(() => {
+            console.warn("[Player] Timeout: Demorou mais de 10s para iniciar. Trocando fonte...");
+            switchSource();
+        }, 10000);
+
         player.on(Clappr.Events.PLAYBACK_ERROR, switchSource);
         player.on(Clappr.Events.PLAYER_ERROR, switchSource);
 
-        // 2. Monitoramento SIMPLES de travamento de imagem (apenas currentTime)
         player.on(Clappr.Events.PLAY, () => {
+
+            if (loadTimeout) {
+                clearTimeout(loadTimeout);
+                loadTimeout = null;
+            }
+            
             if (stallChecker) clearInterval(stallChecker);
             stallCount = 0;
             
@@ -162,27 +176,26 @@
                 const video = playback && playback.el && playback.el.tagName === 'VIDEO' ? playback.el : null;
                 
                 if (video && !video.paused && !video.ended) {
-                    // Se o tempo não avançou quase nada
+
                     if (Math.abs(video.currentTime - lastTime) < 0.1) {
                         stallCount++;
-                        if (stallCount >= 5) { // 5 segundos travado
-                            console.warn("[Player] Imagem travada por 5s. Trocando fonte...");
+                        if (stallCount >= 10) { 
+                            console.warn("[Player] Imagem travada por 10s. Trocando fonte...");
                             switchSource();
                         }
                     } else {
-                        // Vídeo está rodando, reseta o contador
+
                         stallCount = 0;
                         lastTime = video.currentTime;
                     }
                 } else {
-                    // Se estiver pausado, não conta como travamento
+
                     stallCount = 0;
                     if (video) lastTime = video.currentTime;
                 }
             }, 1000);
         });
 
-        // Para de monitorar se o usuário pausar
         player.on(Clappr.Events.PAUSE, () => {
             if (stallChecker) {
                 clearInterval(stallChecker);
@@ -190,15 +203,17 @@
             }
         });
 
-        // Limpeza de segurança
         player.on(Clappr.Events.PLAYER_DESTROY, () => {
             if (stallChecker) {
                 clearInterval(stallChecker);
                 stallChecker = null;
             }
+            if (loadTimeout) {
+                clearTimeout(loadTimeout);
+                loadTimeout = null;
+            }
         });
         
-        // Inicializa o lastTime quando o player está pronto
         player.on(Clappr.Events.PLAYER_READY, () => {
             const container = player.core && player.core.getCurrentContainer();
             const playback = container && container.playback;
@@ -216,7 +231,6 @@
 
 })();
 </script>
-
 
 </body>
 </html>

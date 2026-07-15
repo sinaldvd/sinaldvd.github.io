@@ -157,8 +157,10 @@
             switchSource();
         }, 10000);
 
+
         player.on(Clappr.Events.PLAYBACK_ERROR, switchSource);
         player.on(Clappr.Events.PLAYER_ERROR, switchSource);
+
 
         player.on(Clappr.Events.PLAY, () => {
 
@@ -180,28 +182,15 @@
                     const timeDiff = Math.abs(currentTime - lastTime);
                     
 
-                    let hasBuffer = false;
-                    try {
-                        if (video.buffered && video.buffered.length > 0) {
-                            const bufferEnd = video.buffered.end(video.buffered.length - 1);
-                            hasBuffer = bufferEnd > currentTime + 0.5;
-                        }
-                    } catch(e) {}
-                    
-
-                    if (timeDiff < 0.5 && !hasBuffer) {
+                    if (timeDiff < 0.5) {
                         stallCount++;
-                        console.log(`[Player] Possível travamento: ${stallCount}/10s (diff: ${timeDiff.toFixed(2)}s, buffer: ${hasBuffer})`);
                         
                         if (stallCount >= 10) { 
-                            console.warn("[Player] Imagem travada por 10s SEM buffer. Trocando fonte...");
+                            console.warn("[Player] Imagem travada por 10s. Trocando fonte...");
                             switchSource();
                         }
                     } else {
 
-                        if (stallCount > 0) {
-                            console.log(`[Player] Vídeo recuperou ou tem buffer. Resetando contador (estava em ${stallCount}s)`);
-                        }
                         stallCount = 0;
                         lastTime = currentTime;
                     }

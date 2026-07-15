@@ -21,7 +21,6 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script type="text/javascript" src="https://ssl.p.jwpcdn.com/player/v/8.19.1/jwplayer.js"></script>
 <script type="text/javascript"> jwplayer.key = "64HPbvSQorQcd52B8XFuhMtEoitbvY/EXJmMBfKcXZQU2Rnn"; </script>
-
 <style>
     html, body {
         margin: 0;
@@ -58,73 +57,57 @@
 
 <script>
 (function(){
+
     const params = new URLSearchParams(window.location.search);
     const canalId = params.get("id") || params.get("canal");
 
-    if (!canalId) {
+    if(!canalId){
         document.body.innerHTML = `
-        <div style="width:100%;height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;background:#000;font-family:Arial,sans-serif;text-align:center;">
+        <div style="width:100%; height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#fff; background:#000; font-family:Arial,sans-serif; text-align:center;">
             <h2>Canal não informado</h2>
-            <span>Use a URL com o parâmetro: ?id=nome_do_canal</span>
+            <span>Use ?id=canal</span>
         </div>`;
         return;
     }
+
 
     const sources = [
         `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`, 
         `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`  
     ];
 
+    let currentSourceIndex = 0; 
     const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
 
     let player;
-    let currentSourceIndex = 0;
-    let isSwitching = false;
-    let stallChecker = null;
-    let stallCount = 0;
-    let lastTime = 0;
-    let loadTimeout = null;
+    let reconnectTimer;
+    let loadTimeout; 
 
-    function switchSource() {
-        if (isSwitching) return;
-        isSwitching = true;
-        
-        console.warn("[Player] Falha ou travamento detectado. Alternando fonte...");
-        
-        if (stallChecker) {
-            clearInterval(stallChecker);
-            stallChecker = null;
-        }
-        if (loadTimeout) {
-            clearTimeout(loadTimeout);
-            loadTimeout = null;
-        }
-        
-        currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-        
-        if (player) {
+    function createPlayer(){
+
+        clearTimeout(reconnectTimer);
+        clearTimeout(loadTimeout);
+
+        if(player){
             player.destroy();
         }
-        
-        setTimeout(() => {
-            createPlayer();
-            isSwitching = false;
-        }, 500);
-    }
 
-    function createPlayer() {
+
+        const activeSource = sources[currentSourceIndex];
+        console.log(`[Player] Tentando carregar fonte ${currentSourceIndex + 1}:`, activeSource);
+
         const plugins = [];
-        if (typeof ChromecastPlugin !== "undefined") {
+        if(typeof ChromecastPlugin !== "undefined"){
             plugins.push(ChromecastPlugin);
         }
 
         player = new Clappr.Player({
             parentId: "#player",
-            source: sources[currentSourceIndex],
+            source: activeSource,
             poster: poster,
             width: "100%",
             height: "100%",
-            autoPlay: true,
+            autoPlay: true, 
             mute: false,
             plugins: plugins,
             playback: {
@@ -135,12 +118,10 @@
                     lowLatencyMode: true,
                     liveSyncDurationCount: 3,
                     liveMaxLatencyDurationCount: 10,
-                    maxBufferLength: 30,
-                    maxMaxBufferLength: 60,
+                    maxBufferLength: 20,
+                    maxMaxBufferLength: 30,
                     maxBufferHole: 0.5,
-                    backBufferLength: 30,
-                    startLevel: -1,
-                    capLevelToPlayerSize: true
+                    backBufferLength: 30
                 }
             },
             chromecast: {
@@ -152,94 +133,62 @@
             }
         });
 
+
         loadTimeout = setTimeout(() => {
-            console.warn("[Player] Timeout: Demorou mais de 10s para iniciar. Trocando fonte...");
-            switchSource();
-        }, 10000);
+            console.log("[Player] Demorou muito para carregar (Timeout). Alternando fonte...");
+            reconnect();
+        }, 10000); 
 
 
-        player.on(Clappr.Events.PLAYBACK_ERROR, switchSource);
-        player.on(Clappr.Events.PLAYER_ERROR, switchSource);
-
-
-        player.on(Clappr.Events.PLAY, () => {
-
-            if (loadTimeout) {
-                clearTimeout(loadTimeout);
-                loadTimeout = null;
-            }
-            
-            if (stallChecker) clearInterval(stallChecker);
-            stallCount = 0;
-            
-            stallChecker = setInterval(() => {
-                const container = player.core && player.core.getCurrentContainer();
-                const playback = container && container.playback;
-                const video = playback && playback.el && playback.el.tagName === 'VIDEO' ? playback.el : null;
-                
-                if (video && !video.paused && !video.ended) {
-                    const currentTime = video.currentTime;
-                    const timeDiff = Math.abs(currentTime - lastTime);
-                    
-
-                    if (timeDiff < 0.5) {
-                        stallCount++;
-                        
-                        if (stallCount >= 10) { 
-                            console.warn("[Player] Imagem travada por 10s. Trocando fonte...");
-                            switchSource();
-                        }
-                    } else {
-
-                        stallCount = 0;
-                        lastTime = currentTime;
-                    }
-                } else {
-
-                    stallCount = 0;
-                    if (video) lastTime = video.currentTime;
-                }
-            }, 1000);
-        });
-
-
-        player.on(Clappr.Events.PAUSE, () => {
-            if (stallChecker) {
-                clearInterval(stallChecker);
-                stallChecker = null;
-            }
-        });
-
-
-        player.on(Clappr.Events.PLAYER_DESTROY, () => {
-            if (stallChecker) {
-                clearInterval(stallChecker);
-                stallChecker = null;
-            }
-            if (loadTimeout) {
-                clearTimeout(loadTimeout);
-                loadTimeout = null;
-            }
+        player.on(Clappr.Events.PLAYER_PLAY, () => {
+            clearTimeout(loadTimeout);
+            console.log("[Player] Reprodução iniciada com sucesso.");
         });
         
-
         player.on(Clappr.Events.PLAYER_READY, () => {
-            const container = player.core && player.core.getCurrentContainer();
-            const playback = container && container.playback;
-            const video = playback && playback.el && playback.el.tagName === 'VIDEO' ? playback.el : null;
-            if (video) lastTime = video.currentTime;
+            clearTimeout(loadTimeout);
+        });
+
+
+        player.on(Clappr.Events.PLAYER_ERROR, function(error){
+            console.log("[Player] Erro geral detectado, alternando fonte...", error);
+            reconnect();
+        });
+
+        player.on(Clappr.Events.PLAYER_STOP, function(){
+            console.log("[Player] Playback parado inesperadamente, alternando fonte...");
+            reconnect();
+        });
+
+        player.on(Clappr.Events.PLAYBACK_ERROR, function(error){
+            console.log("[Player] Erro de decodificação HLS, alternando fonte...", error);
+            reconnect();
         });
     }
 
-    window.addEventListener("online", () => {
-        console.log("[Player] Conexão restaurada. Alternando fonte...");
-        switchSource();
+    function reconnect(){
+        clearTimeout(reconnectTimer);
+        clearTimeout(loadTimeout);
+        
+
+        currentSourceIndex = (currentSourceIndex + 1) % sources.length;
+        
+        console.log(`[Player] Aguardando 3 segundos para tentar a fonte ${currentSourceIndex + 1}...`);
+        
+        reconnectTimer = setTimeout(createPlayer, 3000); 
+    }
+
+
+    window.addEventListener("online", function(){
+        console.log("[Player] Conexão restaurada. Resetando para a fonte principal.");
+        currentSourceIndex = 0;
+        createPlayer();
     });
+
 
     createPlayer();
 
 })();
 </script>
-
 </body>
 </html>

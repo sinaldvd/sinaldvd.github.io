@@ -3,69 +3,81 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
-<link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
-<link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
-<link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-<script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
-<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-<script type="text/javascript" src="https://ssl.p.jwpcdn.com/player/v/8.19.1/jwplayer.js"></script>
-<script type="text/javascript"> jwplayer.key = "64HPbvSQorQcd52B8XFuhMtEoitbvY/EXJmMBfKcXZQU2Rnn"; </script>
-<style>
-html,
-body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    background:#000;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Player</title>
+    
+    <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
+    
+    <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
+    <link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 
-#player{
-    position:fixed;
-    inset:0;
-    width:100%;
-    height:100%;
-}
+    <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.10/dist/shaka-player.compiled.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/clappr/dash-shaka-playback@latest/dist/dash-shaka-playback.external.min.js"></script>
+    
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
 
-#svg-spinner,
-.seek-disabled{
-    display:none !important;
-}
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: Arial, sans-serif;
+        }
 
-video{
-    width:100%;
-    height:100%;
-    object-fit:contain;
-    background:#000;
-}
-</style>
+        #player {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Oculta elementos indesejados da UI padrão, se necessário */
+        #svg-spinner, .seek-disabled {
+            display: none !important;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+        
+        .error-message {
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
 </head>
 <body>
 
-<div id="player"></div>
+    <div id="player"></div>
 
 <script>
 (function(){
-
     const params = new URLSearchParams(window.location.search);
     const canalId = params.get("id") || params.get("canal");
 
     if(!canalId){
         document.body.innerHTML = `
-        <div style="width:100%; height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#fff; background:#000; font-family:Arial,sans-serif; text-align:center;">
+        <div class="error-message">
             <h2>Canal não informado</h2>
-            <span>Use ?id=canal</span>
+            <span>Use a URL com o parâmetro: <strong>?id=canal</strong></span>
         </div>`;
         return;
     }
@@ -80,26 +92,28 @@ video{
 
     let player;
     let reconnectTimer;
-    let initialLoadTimer;   // Timer para os 10s iniciais
-    let bufferingTimer;     // Timer para os 15s de travamento durante a reprodução
+    let initialLoadTimer;   
+    let bufferingTimer;    
 
     function createPlayer(){
-        // Limpa todos os timers anteriores para evitar trocas fantasmas
+
         clearTimeout(reconnectTimer);
         clearTimeout(initialLoadTimer);
         clearTimeout(bufferingTimer);
+
 
         if(player){
             player.destroy();
         }
 
         const activeSource = sources[currentSourceIndex];
-        console.log(`[Player] Tentando carregar fonte ${currentSourceIndex + 1}:`, activeSource);
+        console.log(`[Player] Iniciando fonte ${currentSourceIndex + 1}:`, activeSource);
 
         const plugins = [];
-        if(typeof ChromecastPlugin !== "undefined"){
-            plugins.push(ChromecastPlugin);
-        }
+        if(typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
+        if(typeof ClapprPip !== "undefined") plugins.push(ClapprPip);
+        if(typeof ChromecastPlugin !== "undefined") plugins.push(ChromecastPlugin);
+
 
         player = new Clappr.Player({
             parentId: "#player",
@@ -133,83 +147,74 @@ video{
             }
         });
 
-        // --- REGRA 1: 10 SEGUNDOS PARA CARREGAMENTO INICIAL ---
+
         initialLoadTimer = setTimeout(() => {
-            console.log("[Player] Demorou mais de 10s para iniciar. Alternando fonte...");
+            console.warn("[Player] Timeout: Demorou mais de 10s para iniciar. Alternando fonte...");
             reconnect();
         }, 10000);
 
-        // --- EVENTOS DE CONTROLE ---
 
-        // Quando começa a tocar de verdade, cancela o timer de carregamento inicial
         player.on(Clappr.Events.PLAYER_PLAY, () => {
             clearTimeout(initialLoadTimer);
-            console.log("[Player] Reprodução iniciada com sucesso.");
+            console.log("[Player] Reprodução iniciada.");
         });
 
-        // Quando as "3 bolinhas" (buffering) aparecem
-        player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
-            console.log("[Player] Buffering detectado (3 bolinhas). Aguardando 15s para ter certeza...");
-            clearTimeout(initialLoadTimer); // Garante que o timer inicial não interfira
 
-            // --- REGRA 2: 15 SEGUNDOS DE TRAVAMENTO DURANTE A REPRODUÇÃO ---
+        player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
+            console.log("[Player] Buffering detectado. Iniciando contagem de 15s...");
+            clearTimeout(initialLoadTimer); 
+
+
             bufferingTimer = setTimeout(() => {
-                console.log("[Player] Buffering persistiu por 15s. Alternando fonte...");
+                console.warn("[Player] Timeout: Buffering persistiu por 15s. Alternando fonte...");
                 reconnect();
             }, 15000);
         });
 
-        // Quando o buffering acaba e o vídeo volta a rodar
+
         player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
-            console.log("[Player] Buffering finalizado, reprodução fluindo normalmente.");
+            console.log("[Player] Buffering finalizado. Reprodução estável.");
             clearTimeout(initialLoadTimer);
-            clearTimeout(bufferingTimer); // Cancela a troca, pois se recuperou sozinho!
+            clearTimeout(bufferingTimer); 
         });
 
-        // --- FALLBACKS PARA ERROS CRÍTICOS ---
-        player.on(Clappr.Events.PLAYER_ERROR, (error) => {
-            console.log("[Player] Erro geral detectado, alternando fonte...", error);
-            reconnect();
-        });
 
-        player.on(Clappr.Events.PLAYBACK_ERROR, (error) => {
-            console.log("[Player] Erro de decodificação HLS, alternando fonte...", error);
+        const handleError = (errorType, error) => {
+            console.error(`[Player] Erro crítico (${errorType}):`, error);
             reconnect();
-        });
-        
-        player.on(Clappr.Events.PLAYER_STOP, () => {
-            console.log("[Player] Playback parado inesperadamente, alternando fonte...");
-            reconnect();
-        });
+        };
+
+        player.on(Clappr.Events.PLAYER_ERROR, (e) => handleError("PLAYER_ERROR", e));
+        player.on(Clappr.Events.PLAYBACK_ERROR, (e) => handleError("PLAYBACK_ERROR", e));
+        player.on(Clappr.Events.PLAYER_STOP, () => handleError("PLAYER_STOP", "Parada inesperada"));
     }
 
     function reconnect(){
-        // Limpa tudo antes de reagendar
+
         clearTimeout(reconnectTimer);
         clearTimeout(initialLoadTimer);
         clearTimeout(bufferingTimer);
         
-        // Lógica de LOOP: 0 -> 1 -> 0 -> 1...
+
         currentSourceIndex = (currentSourceIndex + 1) % sources.length;
         
         console.log(`[Player] Aguardando 3 segundos para tentar a fonte ${currentSourceIndex + 1}...`);
         
-        // Pequeno delay de 3s para não sobrecarregar o navegador com trocas instantâneas
+
         reconnectTimer = setTimeout(createPlayer, 3000); 
     }
 
-    // Se a internet cair e voltar, reseta para a fonte principal (índice 0)
+
     window.addEventListener("online", function(){
-        console.log("[Player] Conexão restaurada. Resetando para a fonte principal.");
+        console.log("[Player] Conexão restaurada. Resetando para a fonte principal (0).");
         currentSourceIndex = 0;
         createPlayer();
     });
 
-    // Inicia o player
+
     createPlayer();
 
 })();
 </script>
-
 </body>
 </html>

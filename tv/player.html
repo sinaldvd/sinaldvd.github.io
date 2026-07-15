@@ -70,7 +70,6 @@ video{
         return;
     }
 
-
     const sources = [
         `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`, 
         `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`  
@@ -81,17 +80,18 @@ video{
 
     let player;
     let reconnectTimer;
-    let loadTimeout; 
+    let initialLoadTimer;   // Timer para os 10s iniciais
+    let bufferingTimer;     // Timer para os 15s de travamento durante a reprodução
 
     function createPlayer(){
-
+        // Limpa todos os timers anteriores para evitar trocas fantasmas
         clearTimeout(reconnectTimer);
-        clearTimeout(loadTimeout);
+        clearTimeout(initialLoadTimer);
+        clearTimeout(bufferingTimer);
 
         if(player){
             player.destroy();
         }
-
 
         const activeSource = sources[currentSourceIndex];
         console.log(`[Player] Tentando carregar fonte ${currentSourceIndex + 1}:`, activeSource);
@@ -133,59 +133,79 @@ video{
             }
         });
 
-
-        loadTimeout = setTimeout(() => {
-            console.log("[Player] Demorou muito para carregar (Timeout). Alternando fonte...");
+        // --- REGRA 1: 10 SEGUNDOS PARA CARREGAMENTO INICIAL ---
+        initialLoadTimer = setTimeout(() => {
+            console.log("[Player] Demorou mais de 10s para iniciar. Alternando fonte...");
             reconnect();
-        }, 10000); 
+        }, 10000);
 
+        // --- EVENTOS DE CONTROLE ---
 
+        // Quando começa a tocar de verdade, cancela o timer de carregamento inicial
         player.on(Clappr.Events.PLAYER_PLAY, () => {
-            clearTimeout(loadTimeout);
+            clearTimeout(initialLoadTimer);
             console.log("[Player] Reprodução iniciada com sucesso.");
         });
-        
-        player.on(Clappr.Events.PLAYER_READY, () => {
-            clearTimeout(loadTimeout);
+
+        // Quando as "3 bolinhas" (buffering) aparecem
+        player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
+            console.log("[Player] Buffering detectado (3 bolinhas). Aguardando 15s para ter certeza...");
+            clearTimeout(initialLoadTimer); // Garante que o timer inicial não interfira
+
+            // --- REGRA 2: 15 SEGUNDOS DE TRAVAMENTO DURANTE A REPRODUÇÃO ---
+            bufferingTimer = setTimeout(() => {
+                console.log("[Player] Buffering persistiu por 15s. Alternando fonte...");
+                reconnect();
+            }, 15000);
         });
 
+        // Quando o buffering acaba e o vídeo volta a rodar
+        player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
+            console.log("[Player] Buffering finalizado, reprodução fluindo normalmente.");
+            clearTimeout(initialLoadTimer);
+            clearTimeout(bufferingTimer); // Cancela a troca, pois se recuperou sozinho!
+        });
 
-        player.on(Clappr.Events.PLAYER_ERROR, function(error){
+        // --- FALLBACKS PARA ERROS CRÍTICOS ---
+        player.on(Clappr.Events.PLAYER_ERROR, (error) => {
             console.log("[Player] Erro geral detectado, alternando fonte...", error);
             reconnect();
         });
 
-        player.on(Clappr.Events.PLAYER_STOP, function(){
-            console.log("[Player] Playback parado inesperadamente, alternando fonte...");
+        player.on(Clappr.Events.PLAYBACK_ERROR, (error) => {
+            console.log("[Player] Erro de decodificação HLS, alternando fonte...", error);
             reconnect();
         });
-
-        player.on(Clappr.Events.PLAYBACK_ERROR, function(error){
-            console.log("[Player] Erro de decodificação HLS, alternando fonte...", error);
+        
+        player.on(Clappr.Events.PLAYER_STOP, () => {
+            console.log("[Player] Playback parado inesperadamente, alternando fonte...");
             reconnect();
         });
     }
 
     function reconnect(){
+        // Limpa tudo antes de reagendar
         clearTimeout(reconnectTimer);
-        clearTimeout(loadTimeout);
+        clearTimeout(initialLoadTimer);
+        clearTimeout(bufferingTimer);
         
-
+        // Lógica de LOOP: 0 -> 1 -> 0 -> 1...
         currentSourceIndex = (currentSourceIndex + 1) % sources.length;
         
         console.log(`[Player] Aguardando 3 segundos para tentar a fonte ${currentSourceIndex + 1}...`);
         
+        // Pequeno delay de 3s para não sobrecarregar o navegador com trocas instantâneas
         reconnectTimer = setTimeout(createPlayer, 3000); 
     }
 
-
+    // Se a internet cair e voltar, reseta para a fonte principal (índice 0)
     window.addEventListener("online", function(){
         console.log("[Player] Conexão restaurada. Resetando para a fonte principal.");
         currentSourceIndex = 0;
         createPlayer();
     });
 
-
+    // Inicia o player
     createPlayer();
 
 })();

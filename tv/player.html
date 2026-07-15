@@ -176,17 +176,34 @@
                 const video = playback && playback.el && playback.el.tagName === 'VIDEO' ? playback.el : null;
                 
                 if (video && !video.paused && !video.ended) {
+                    const currentTime = video.currentTime;
+                    const timeDiff = Math.abs(currentTime - lastTime);
+                    
 
-                    if (Math.abs(video.currentTime - lastTime) < 0.1) {
+                    let hasBuffer = false;
+                    try {
+                        if (video.buffered && video.buffered.length > 0) {
+                            const bufferEnd = video.buffered.end(video.buffered.length - 1);
+                            hasBuffer = bufferEnd > currentTime + 0.5;
+                        }
+                    } catch(e) {}
+                    
+
+                    if (timeDiff < 0.5 && !hasBuffer) {
                         stallCount++;
+                        console.log(`[Player] Possível travamento: ${stallCount}/10s (diff: ${timeDiff.toFixed(2)}s, buffer: ${hasBuffer})`);
+                        
                         if (stallCount >= 10) { 
-                            console.warn("[Player] Imagem travada por 10s. Trocando fonte...");
+                            console.warn("[Player] Imagem travada por 10s SEM buffer. Trocando fonte...");
                             switchSource();
                         }
                     } else {
 
+                        if (stallCount > 0) {
+                            console.log(`[Player] Vídeo recuperou ou tem buffer. Resetando contador (estava em ${stallCount}s)`);
+                        }
                         stallCount = 0;
-                        lastTime = video.currentTime;
+                        lastTime = currentTime;
                     }
                 } else {
 
@@ -196,12 +213,14 @@
             }, 1000);
         });
 
+
         player.on(Clappr.Events.PAUSE, () => {
             if (stallChecker) {
                 clearInterval(stallChecker);
                 stallChecker = null;
             }
         });
+
 
         player.on(Clappr.Events.PLAYER_DESTROY, () => {
             if (stallChecker) {
@@ -214,6 +233,7 @@
             }
         });
         
+
         player.on(Clappr.Events.PLAYER_READY, () => {
             const container = player.core && player.core.getCurrentContainer();
             const playback = container && container.playback;

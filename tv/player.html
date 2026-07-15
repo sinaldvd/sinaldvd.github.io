@@ -70,7 +70,6 @@
         return;
     }
 
-    // Lista de fontes para fallback automático em loop
     const sources = [
         `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`, 
         `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`  
@@ -81,42 +80,31 @@
     let player;
     let currentSourceIndex = 0;
     let isSwitching = false;
-    
-    // Timers de controle
-    let loadTimeout = null;
-    let monitorInterval = null;
-
-    function clearAllTimers() {
-        if (loadTimeout) {
-            clearTimeout(loadTimeout);
-            loadTimeout = null;
-        }
-        if (monitorInterval) {
-            clearInterval(monitorInterval);
-            monitorInterval = null;
-        }
-    }
+    let stallChecker = null;
+    let stallCount = 0;
+    let lastTime = 0;
 
     function switchSource() {
         if (isSwitching) return;
         isSwitching = true;
         
-        console.warn(`[Player] Falha ou demora > 5s. Alternando para fonte ${currentSourceIndex === 0 ? 1 : 0}...`);
+        console.warn("[Player] Falha ou travamento detectado. Alternando fonte...");
         
-        clearAllTimers();
+        if (stallChecker) {
+            clearInterval(stallChecker);
+            stallChecker = null;
+        }
         
-        // Alterna para o próximo índice em loop (0 -> 1 -> 0 -> 1...)
         currentSourceIndex = (currentSourceIndex + 1) % sources.length;
         
         if (player) {
             player.destroy();
         }
         
-        // Delay curto para garantir que o navegador liberou o decoder de vídeo
         setTimeout(() => {
             createPlayer();
             isSwitching = false;
-        }, 400);
+        }, 500);
     }
 
     function createPlayer() {
@@ -142,8 +130,8 @@
                     lowLatencyMode: true,
                     liveSyncDurationCount: 3,
                     liveMaxLatencyDurationCount: 10,
-                    maxBufferLength: 15, // Reduzido para falhar/trocar mais rápido se o stream estiver ruim
-                    maxMaxBufferLength: 20,
+                    maxBufferLength: 30,
+                    maxMaxBufferLength: 60,
                     maxBufferHole: 0.5,
                     backBufferLength: 30,
                     startLevel: -1,
@@ -159,81 +147,76 @@
             }
         });
 
-        // 1. REGRA: Se demorar mais de 5 segundos para carregar/iniciar
-        loadTimeout = setTimeout(() => {
-            console.warn("[Player] Timeout: Demorou mais de 5s para iniciar o playback.");
-            switchSource();
-        }, 5000);
-
-        // Cancela o timeout de carregamento se o player começar a tocar ou ficar pronto
-        player.on(Clappr.Events.PLAYER_READY, () => {
-            if (loadTimeout) clearTimeout(loadTimeout);
-        });
-        player.on(Clappr.Events.PLAY, () => {
-            if (loadTimeout) clearTimeout(loadTimeout);
-        });
-
-        // Regras de erro imediato
+        // 1. Troca em caso de erro real do player ou playback
         player.on(Clappr.Events.PLAYBACK_ERROR, switchSource);
         player.on(Clappr.Events.PLAYER_ERROR, switchSource);
 
-        // 2. e 3. REGRAS: Monitoramento de Buffer e Travamento de Imagem (5 segundos)
-        const checkVideoElement = setInterval(() => {
-            const container = player.core && player.core.getCurrentContainer();
-            const playback = container && container.playback;
-            const video = playback && playback.el && playback.el.tagName === 'VIDEO' ? playback.el : null;
-
-            if (video) {
-                clearInterval(checkVideoElement); // Encontrou o elemento, para de procurar
+        // 2. Monitoramento SIMPLES de travamento de imagem (apenas currentTime)
+        player.on(Clappr.Events.PLAY, () => {
+            if (stallChecker) clearInterval(stallChecker);
+            stallCount = 0;
+            
+            stallChecker = setInterval(() => {
+                const container = player.core && player.core.getCurrentContainer();
+                const playback = container && container.playback;
+                const video = playback && playback.el && playback.el.tagName === 'VIDEO' ? playback.el : null;
                 
-                let stallSeconds = 0;
-                let lastCurrentTime = video.currentTime;
-
-                monitorInterval = setInterval(() => {
-                    // Se o usuário pausou ou o vídeo acabou, não contamos como travamento
-                    if (video.paused || video.ended) {
-                        stallSeconds = 0;
-                        lastCurrentTime = video.currentTime;
-                        return;
-                    }
-
-                    // Verifica se está sem dados suficientes (buffering) OU se o tempo não avançou
-                    const isBuffering = video.readyState < 3; 
-                    const isTimeStalled = Math.abs(video.currentTime - lastCurrentTime) < 0.05;
-
-                    if (isBuffering || isTimeStalled) {
-                        stallSeconds++;
-                        if (stallSeconds >= 5) {
-                            console.warn(`[Player] Travamento/Buffer confirmado por ${stallSeconds}s. Trocando link...`);
-                            clearAllTimers();
+                if (video && !video.paused && !video.ended) {
+                    // Se o tempo não avançou quase nada
+                    if (Math.abs(video.currentTime - lastTime) < 0.1) {
+                        stallCount++;
+                        if (stallCount >= 5) { // 5 segundos travado
+                            console.warn("[Player] Imagem travada por 5s. Trocando fonte...");
                             switchSource();
                         }
                     } else {
-                        // Vídeo está rodando suavemente, reseta o contador
-                        stallSeconds = 0;
-                        lastCurrentTime = video.currentTime;
+                        // Vídeo está rodando, reseta o contador
+                        stallCount = 0;
+                        lastTime = video.currentTime;
                     }
-                }, 1000); // Verifica a cada 1 segundo
-            }
-        }, 500);
+                } else {
+                    // Se estiver pausado, não conta como travamento
+                    stallCount = 0;
+                    if (video) lastTime = video.currentTime;
+                }
+            }, 1000);
+        });
 
-        // Limpeza de segurança ao destruir
+        // Para de monitorar se o usuário pausar
+        player.on(Clappr.Events.PAUSE, () => {
+            if (stallChecker) {
+                clearInterval(stallChecker);
+                stallChecker = null;
+            }
+        });
+
+        // Limpeza de segurança
         player.on(Clappr.Events.PLAYER_DESTROY, () => {
-            clearAllTimers();
+            if (stallChecker) {
+                clearInterval(stallChecker);
+                stallChecker = null;
+            }
+        });
+        
+        // Inicializa o lastTime quando o player está pronto
+        player.on(Clappr.Events.PLAYER_READY, () => {
+            const container = player.core && player.core.getCurrentContainer();
+            const playback = container && container.playback;
+            const video = playback && playback.el && playback.el.tagName === 'VIDEO' ? playback.el : null;
+            if (video) lastTime = video.currentTime;
         });
     }
 
-    // Recuperação automática ao restaurar conexão de internet
     window.addEventListener("online", () => {
-        console.log("[Player] Conexão restaurada. Forçando troca de fonte para estabilidade...");
+        console.log("[Player] Conexão restaurada. Alternando fonte...");
         switchSource();
     });
 
-    // Inicialização
     createPlayer();
 
 })();
 </script>
+
 
 </body>
 </html>

@@ -5,641 +5,244 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Player</title>
-<link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
-<link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
-<link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
-<link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
-<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-:root { --accent: #ff3333; --accent-hover: #ff5555; }
-
-html, body {
-   margin: 0;
-   padding: 0;
+    <title>Player</title>
+  
+    <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
+    <link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
+  
+    <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
+    <link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.compiled.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/clappr/dash-shaka-playback@latest/dist/dash-shaka-playback.external.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
             background: #000;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-}
+        }
 
-#pw {
-  position: fixed;
-  inset: 0;
-  background: #000;
-  z-index: 99999;
-  display: flex;
-  flex-direction: column;
-  cursor: pointer;
-}
+        #player {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
 
-/* Ocultação automática de controles */
-#pw.hide-cursor { cursor: none; }
-#pw.hide-cursor #bar { opacity: 0 !important; }
+        #svg-spinner, .seek-disabled {
+            display: none !important;
+        }
 
-video {
-  width: 100%;
-  height: 100%;
-  max-width: 100vw;
-  max-height: 100vh;
-  background: #000;
-  display: block;
-  outline: none;
-}
-
-/* === BARRA DE CONTROLES === */
-#bar {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  padding: 60px 16px 16px;
-  background: linear-gradient(transparent, rgba(0,0,0,0.95) 60%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-#pw:hover #bar, #pw.paused #bar { 
-  opacity: 1; 
-  pointer-events: auto;
-}
-
-/* Seek Bar (Oculto por padrão via JS, mas mantido no CSS para consistência) */
-#seek {
-  width: 100%; height: 4px;
-  background: rgba(255,255,255,0.25);
-  border-radius: 2px;
-  cursor: pointer;
-  margin-bottom: 12px;
-  transition: height 0.15s ease;
-  position: relative;
-  display: none; /* Garantido invisível */
-}
-
-/* Linha de Botões */
-#row { display: flex; align-items: center; gap: 8px; }
-
-.btn {
-  background: none; border: none;
-  color: #fff; cursor: pointer;
-  width: 40px; height: 40px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%;
-  opacity: 0.85;
-  transition: opacity 0.15s, background 0.15s;
-  flex-shrink: 0;
-  pointer-events: auto;
-}
-.btn:hover { opacity: 1; background: rgba(255,255,255,0.15); }
-.btn svg { width: 22px; height: 22px; fill: currentColor; }
-
-#vwrap { display: flex; align-items: center; gap: 8px; }
-#vsl {
-  -webkit-appearance: none;
-  width: 70px; height: 4px;
-  background: rgba(255,255,255,0.3);
-  border-radius: 2px; outline: none; cursor: pointer;
-  pointer-events: auto;
-}
-#vsl::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px; height: 12px;
-  border-radius: 50%; background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-}
-
-#timer { 
-  display: none; /* Garantido invisível */
-}
-
-.sp { flex: 1; }
-
-/* Menu de Qualidade */
-#qwrap { position: relative; pointer-events: auto; }
-#qbtn {
-  font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: #fff; border-radius: 4px;
-  padding: 6px 10px; cursor: pointer;
-  height: 32px; white-space: nowrap;
-  transition: background 0.15s;
-}
-#qbtn:hover { background: rgba(255,255,255,0.25); }
-#qmenu {
-  display: none; position: absolute;
-  bottom: 42px; right: 0;
-  background: rgba(20,20,25,0.98);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 8px; overflow: hidden;
-  min-width: 110px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.8);
-  z-index: 10;
-  backdrop-filter: blur(8px);
-}
-#qmenu.open { display: block; animation: fadeIn 0.15s ease; }
-.qi {
-  padding: 10px 16px; font-size: 13px;
-  cursor: pointer; color: #ccc;
-  transition: background 0.12s, color 0.12s;
-  display: flex; align-items: center; gap: 8px;
-}
-.qi:hover { background: rgba(255,255,255,0.1); color: #fff; }
-.qi.on { color: var(--accent); font-weight: 700; }
-.qi.on::before { content: '▶'; font-size: 8px; }
-
-/* Cast */
-#castbtn { display: none; }
-#castbtn.show { display: flex; }
-#castbtn.casting svg { fill: #4fc3f7; }
-
-/* Spinner de Carregamento */
-#spin {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: none; opacity: 0; transition: opacity 0.2s;
-  z-index: 5;
-}
-#spin.on { opacity: 1; }
-.ring {
-  width: 48px; height: 48px;
-  border: 3px solid rgba(255,255,255,0.1);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Flash de Feedback (Play/Pause) */
-#flash {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: none; opacity: 0;
-  z-index: 4;
-}
-#flash.go { animation: flashAnim 0.5s ease-out forwards; }
-@keyframes flashAnim { 
-  0% { opacity: 0; transform: scale(0.8); } 
-  20% { opacity: 1; transform: scale(1); } 
-  100% { opacity: 0; transform: scale(1.1); } 
-}
-.fc {
-  width: 64px; height: 64px;
-  background: rgba(0,0,0,0.6);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255,255,255,0.1);
-}
-.fc svg { width: 32px; height: 32px; fill: #fff; }
-
-/* Tela de Erro */
-#err {
-  position: absolute; inset: 0;
-  display: none; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 16px; color: #fff;
-  background: rgba(0,0,0,0.85);
-  z-index: 20;
-  padding: 20px;
-}
-#err svg { width: 48px; height: 48px; fill: #ff4444; }
-#err p { font-size: 15px; opacity: 0.8; text-align: center; max-width: 320px; line-height: 1.4; }
-#err button {
-  padding: 10px 24px;
-  background: var(--accent); border: none;
-  border-radius: 6px; color: #fff;
-  font-size: 14px; font-weight: 700; cursor: pointer;
-  transition: background 0.15s;
-}
-#err button:hover { background: var(--accent-hover); }
-
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-/* Responsividade Mobile */
-@media (max-width: 480px) {
-  #vsl { width: 50px; }
-  .btn { width: 36px; height: 36px; }
-  .btn svg { width: 20px; height: 20px; }
-  #bar { padding: 50px 12px 12px; }
-}
-</style>
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+    </style>
 </head>
 <body>
-
-<div id="pw">
-  <video id="v" playsinline preload="metadata"></video>
-  
-  <div id="spin"><div class="ring"></div></div>
-  
-  <div id="flash"><div class="fc"><svg id="fi" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></div></div>
-  
-  <div id="err">
-    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-    <p id="etxt">Erro ao carregar o stream.</p>
-    <button onclick="retry()">Tentar novamente</button>
-  </div>
-  
-  <div id="bar">
-    <div id="seek"><div id="sf"></div></div>
-    
-    <div id="row">
-      <button class="btn" onclick="togglePlay()" aria-label="Play/Pause">
-        <svg id="pi" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-      </button>
-      
-      <div id="vwrap">
-        <button class="btn" onclick="toggleMute()" aria-label="Mudo">
-          <svg id="vi" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-        </button>
-        <input id="vsl" type="range" min="0" max="1" step="0.05" value="1" oninput="setVol(this.value)" aria-label="Volume">
-      </div>
-      
-      <span id="timer"></span>
-      <div class="sp"></div>
-      
-      <button class="btn" id="castbtn" title="Transmitir para TV" aria-label="Cast">
-        <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm18-7H5c-1.1 0-2 .9-2 2v3h2v-3h14v10h-5v2h5c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-18 3v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11z"/></svg>
-      </button>
-      
-      <button class="btn" id="pipbtn" onclick="pip()" title="Picture-in-Picture" aria-label="PiP">
-        <svg viewBox="0 0 24 24"><path d="M19 7h-8v6h8V7zm2-4H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.99h18v14.02z"/></svg>
-      </button>
-      
-      <button class="btn" onclick="toggleFS()" title="Tela Cheia" aria-label="Tela Cheia">
-        <svg id="fsi" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-      </button>
-    </div>
-  </div>
-</div>
-
+    <div id="player"></div>
 <script>
-const params = new URLSearchParams(window.location.search);
-const rawId = params.get("id") || params.get("m");
-const isValidId = (str) => /^[a-zA-Z0-9_-]+$/.test(str);
-
-if (!rawId || !isValidId(rawId)) {
-    document.body.innerHTML = `
-    <div style="color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000;">
-        <svg viewBox="0 0 24 24" width="48" height="48" fill="#ff4444" style="margin-bottom:16px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-        <h2 style="color:#ff4444; margin-bottom:10px;">Canal não informado ou inválido</h2>
-        <p style="opacity:0.7">Use a URL com o parâmetro: <strong style="color:#fff">?id=nome-do-canal</strong></p>
-    </div>`;
-    window.stop();
-    throw new Error("ID inválido");
-}
-
-const canalId = rawId;
-const sources = [
-    `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`, 
-    `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`  
-];
-const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
-
-const CFG = {
-  sources: sources,
-  poster: poster,
-  qualities: [], 
-  startMuted: false,
-  showSeek: false,
-  title: canalId.toUpperCase() + " - Ao Vivo",
-};
-
-document.title = CFG.title;
-
-
-const vid  = document.getElementById('v');
-const pw   = document.getElementById('pw');
-const spin = document.getElementById('spin');
-const seek = document.getElementById('seek');
-const sf   = document.getElementById('sf');
-const tmr  = document.getElementById('timer');
-const pi   = document.getElementById('pi');
-const vi   = document.getElementById('vi');
-const vsl  = document.getElementById('vsl');
-const fi   = document.getElementById('fi');
-const flash= document.getElementById('flash');
-const qm   = document.getElementById('qmenu');
-const qb   = document.getElementById('qbtn');
-const err  = document.getElementById('err');
-const etxt = document.getElementById('etxt');
-const fsi  = document.getElementById('fsi');
-const cBtn = document.getElementById('castbtn');
-
-let hls = null;
-let currentSourceIndex = 0;
-let controlsTimeout;
-
-
-vid.poster = CFG.poster;
-if (!CFG.showSeek) {
-    seek.style.display = 'none';
-    tmr.style.display = 'none';
-}
-if (CFG.startMuted) { vid.muted = true; vsl.value = 0; }
-if (!document.pictureInPictureEnabled) document.getElementById('pipbtn').style.display = 'none';
-
-
-function init() {
-  hide();
-  loading(true);
-  if (hls) { hls.destroy(); hls = null; }
-
-  if (CFG.qualities.length > 0) {
-    buildManualMenu();
-    loadSrc(CFG.qualities[0].url);
-    return;
-  }
-
-  const currentUrl = CFG.sources[currentSourceIndex];
-
-  if (Hls.isSupported()) {
-    hls = new Hls({ 
-      enableWorker: true, 
-      lowLatencyMode: true,
-      manifestLoadingTimeOut: 10000
-    });
+(function(){
+    const params = new URLSearchParams(window.location.search);
+    const rawId = params.get("id") || params.get("m");
     
-    hls.loadSource(currentUrl);
-    hls.attachMedia(vid);
-    
-    hls.on(Hls.Events.MANIFEST_PARSED, (_, d) => {
-      buildAutoMenu(d.levels);
-      tryAutoplay();
-    });
-    
-    hls.on(Hls.Events.ERROR, (_, d) => {
-      if (d.fatal) {
-        if (d.type === Hls.ErrorTypes.NETWORK_ERROR && currentSourceIndex < CFG.sources.length - 1) {
-          console.warn("Falha na rede, tentando fonte alternativa...");
-          currentSourceIndex++;
-          init();
-        } else {
-          showErr("Erro ao carregar o stream. Verifique sua conexão ou tente outro canal.");
+    const isValidId = (str) => /^[a-zA-Z0-9_-]+$/.test(str);
+
+    if (!rawId || !isValidId(rawId)) {
+
+        document.body.innerHTML = `
+        <div style="color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000;">
+            <h2 style="color:#ff4444; margin-bottom:10px;">Canal não informado ou inválido</h2>
+            <p>Use a URL com o parâmetro: <strong>?id=nome-do-canal</strong></p>
+        </div>`;
+        return;
+    }
+
+    const canalId = rawId;
+    const sources = [
+        `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`, 
+        `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`  
+    ];
+
+    let currentSourceIndex = 0; 
+    const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
+
+    let player = null;
+    let reconnectTimer = null;
+    let initialLoadTimer = null;   
+    let bufferingTimer = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 5; 
+
+    function clearAllTimers() {
+        clearTimeout(reconnectTimer);
+        clearTimeout(initialLoadTimer);
+        clearTimeout(bufferingTimer);
+    }
+
+    function showFatalError(message) {
+        clearAllTimers();
+        if (player) {
+            player.destroy();
+            player = null;
         }
-      }
+        console.error("[Player] Erro fatal:", message);
+        
+
+        const errDiv = document.createElement('div');
+        errDiv.style.cssText = 'color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000; z-index:999;';
+        errDiv.innerHTML = `<h2 style="color:#ff4444; margin-bottom:10px;">Erro na reprodução</h2><p>${message}</p>`;
+        document.body.appendChild(errDiv);
+    }
+
+    function createPlayer() {
+        clearAllTimers();
+
+        if (retryCount >= MAX_RETRIES) {
+            showFatalError("Não foi possível conectar ao stream após várias tentativas. Verifique sua conexão.");
+            return;
+        }
+
+        if (player) {
+            player.destroy();
+            player = null;
+        }
+
+        const activeSource = sources[currentSourceIndex];
+        console.log(`[Player] Iniciando fonte ${currentSourceIndex + 1} (Tentativa ${retryCount + 1}):`, activeSource);
+
+        const plugins = [];
+        if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
+        if (typeof ClapprPip !== "undefined") plugins.push(ClapprPip);
+        if (typeof ChromecastPlugin !== "undefined") plugins.push(ChromecastPlugin);
+
+        try {
+            player = new Clappr.Player({
+                parentId: "#player",
+                source: activeSource,
+                poster: poster,
+                width: "100%",
+                height: "100%",
+                autoPlay: true, 
+                mute: false,
+                plugins: plugins,
+                playback: {
+                    playInline: true,
+                    recycleVideo: true,
+                    hlsjsConfig: {
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        liveSyncDurationCount: 3,
+                        liveMaxLatencyDurationCount: 10,
+                        maxBufferLength: 20,
+                        maxMaxBufferLength: 30,
+                        maxBufferHole: 0.5,
+                        backBufferLength: 30
+                    }
+                },
+                chromecast: {
+                    appId: "9DFB77C0",
+                    media: {
+                        title: canalId,
+                        subtitle: "Live TV"
+                    }
+                }
+            });
+
+            initialLoadTimer = setTimeout(() => {
+                console.warn("[Player] Timeout: Demorou mais de 10s para iniciar.");
+                retryCount++;
+                reconnect();
+            }, 10000);
+
+            player.on(Clappr.Events.PLAYER_PLAY, () => {
+                clearAllTimers();
+                retryCount = 0; // Reseta o contador ao ter sucesso
+                console.log("[Player] Reprodução iniciada com sucesso.");
+            });
+
+            player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
+                console.log("[Player] Buffering detectado.");
+                clearTimeout(initialLoadTimer); 
+                bufferingTimer = setTimeout(() => {
+                    console.warn("[Player] Timeout: Buffering persistiu por 15s.");
+                    retryCount++;
+                    reconnect();
+                }, 15000);
+            });
+
+            player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
+                console.log("[Player] Buffering finalizado.");
+                clearTimeout(bufferingTimer); 
+            });
+
+            const handleError = (errorType, error) => {
+                console.error(`[Player] Erro crítico (${errorType}):`, error);
+                retryCount++;
+                reconnect();
+            };
+
+            player.on(Clappr.Events.PLAYER_ERROR, (e) => handleError("PLAYER_ERROR", e));
+            player.on(Clappr.Events.PLAYBACK_ERROR, (e) => handleError("PLAYBACK_ERROR", e));
+
+        } catch (e) {
+            console.error("[Player] Erro ao instanciar Clappr:", e);
+            retryCount++;
+            reconnect();
+        }
+    }
+
+    function reconnect() {
+        clearAllTimers();
+        
+        if (retryCount >= MAX_RETRIES) {
+            showFatalError("Todas as fontes de vídeo falharam. Tente recarregar a página.");
+            return;
+        }
+
+        currentSourceIndex = (currentSourceIndex + 1) % sources.length;
+        console.log(`[Player] Aguardando 3s para tentar fonte ${currentSourceIndex + 1}...`);
+        
+        reconnectTimer = setTimeout(createPlayer, 3000); 
+    }
+
+    window.addEventListener("online", () => {
+        console.log("[Player] Conexão restaurada. Resetando tentativas e fonte principal.");
+        retryCount = 0;
+        currentSourceIndex = 0;
+        createPlayer();
     });
-  } else if (vid.canPlayType('application/vnd.apple.mpegurl')) {
-    vid.src = currentUrl;
-    vid.load();
-    tryAutoplay();
-  } else {
-    showErr("Seu navegador não suporta streams HLS.");
-  }
-}
+
+    window.addEventListener("beforeunload", () => {
+        clearAllTimers();
+        if (player) {
+            player.destroy();
+        }
+    });
 
 
-function tryAutoplay() {
-  if (!CFG.startMuted) {
-    vid.muted = true;
-    vid.play()
-      .then(() => {
-        console.log("Autoplay com som iniciado!");
-        onPlayStarted();
-      })
-      .catch(() => {
-        console.warn("Autoplay com som bloqueado. Tentando mudo...");
-        vid.muted = false;
-        vsl.value = 0;
-        vid.play()
-          .then(() => {
-            console.log("Autoplay mudo iniciado.");
-            onPlayStarted();
-          })
-          .catch((e) => {
-            console.error("Autoplay falhou completamente:", e);
-            pw.classList.add('paused');
-            pi.innerHTML = '<path d="M8 5v14l11-7z"/>';
-            loading(false);
-          });
-      });
-  } else {
-    vid.muted = false;
-    vsl.value = 0;
-    vid.play()
-      .then(() => {
-        console.log("Autoplay mudo iniciado.");
-        onPlayStarted();
-      })
-      .catch((e) => {
-        console.error("Autoplay falhou:", e);
-        pw.classList.add('paused');
-        pi.innerHTML = '<path d="M8 5v14l11-7z"/>';
-        loading(false);
-      });
-  }
-}
+    createPlayer();
 
-function onPlayStarted() {
-  pw.classList.remove('paused');
-  pi.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
-  loading(false);
-  resetControlsTimeout();
-}
-
-function loadSrc(url) {
-  vid.src = url;
-  vid.load();
-  vid.play().catch(() => {});
-}
-
-function retry() { 
-  currentSourceIndex = 0; 
-  hide(); 
-  init(); 
-}
-
-
-function buildAutoMenu(levels) {
-  qm.innerHTML = '<div class="qi on" data-l="-1" onclick="setQ(-1)">AUTO</div>';
-  levels.forEach((lv, i) => {
-    const label = lv.height ? lv.height + 'p' : 'Nível ' + (i + 1);
-    const d = document.createElement('div');
-    d.className = 'qi';
-    d.dataset.l = i;
-    d.textContent = label;
-    d.onclick = () => setQ(i);
-    qm.appendChild(d);
-  });
-}
-
-function buildManualMenu() {
-  qm.innerHTML = '';
-  CFG.qualities.forEach((q, i) => {
-    const d = document.createElement('div');
-    d.className = 'qi' + (i === 0 ? ' on' : '');
-    d.dataset.l = i;
-    d.textContent = q.label;
-    d.onclick = () => {
-      loadSrc(q.url);
-      markQ(i);
-      qb.textContent = q.label + ' ▼';
-      qm.classList.remove('open');
-    };
-    qm.appendChild(d);
-  });
-  if (CFG.qualities.length) qb.textContent = CFG.qualities[0].label + ' ▼';
-}
-
-function setQ(l) {
-  if (hls) hls.currentLevel = l;
-  markQ(l);
-  qb.textContent = (l === -1 ? 'AUTO' : qm.querySelector('[data-l="' + l + '"]')?.textContent || '') + ' ▼';
-  qm.classList.remove('open');
-}
-
-function markQ(l) {
-  qm.querySelectorAll('.qi').forEach(e => e.classList.toggle('on', parseInt(e.dataset.l) === l));
-}
-
-function toggleQ() { qm.classList.toggle('open'); }
-
-document.addEventListener('click', e => {
-  if (!document.getElementById('qwrap').contains(e.target)) qm.classList.remove('open');
-});
-
-
-function togglePlay() { 
-  vid.paused ? vid.play().catch(()=>{}) : vid.pause(); 
-}
-
-vid.addEventListener('click', () => {
-  togglePlay();
-  resetControlsTimeout();
-});
-
-vid.addEventListener('play', () => {
-  pw.classList.remove('paused');
-  pi.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
-  doFlash(false); loading(false);
-  resetControlsTimeout();
-});
-
-vid.addEventListener('pause', () => {
-  pw.classList.add('paused');
-  pi.innerHTML = '<path d="M8 5v14l11-7z"/>';
-  doFlash(true);
-  clearTimeout(controlsTimeout);
-  pw.classList.remove('hide-cursor');
-});
-
-vid.addEventListener('waiting', () => loading(true));
-vid.addEventListener('playing', () => loading(false));
-vid.addEventListener('canplay', () => loading(false));
-
-function doFlash(paused) {
-  fi.innerHTML = paused
-    ? '<path d="M8 5v14l11-7z"/>'
-    : '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
-  flash.classList.remove('go');
-  void flash.offsetWidth;
-  flash.classList.add('go');
-}
-
-
-function setVol(v) { vid.volume = v; vid.muted = v == 0; updV(); }
-function toggleMute() { vid.muted = !vid.muted; vsl.value = vid.muted ? 0 : vid.volume; updV(); }
-
-function updV() {
-  const m = vid.muted || vid.volume === 0;
-  vi.innerHTML = m
-    ? '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>'
-    : '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
-}
-
-
-function toggleFS() {
-  if (!document.fullscreenElement) {
-    pw.requestFullscreen?.() || pw.webkitRequestFullscreen?.() || pw.msRequestFullscreen?.();
-  } else {
-    document.exitFullscreen?.() || document.webkitExitFullscreen?.() || document.msExitFullscreen?.();
-  }
-}
-
-document.addEventListener('fullscreenchange', () => {
-  const fs = !!document.fullscreenElement;
-  fsi.innerHTML = fs
-    ? '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>'
-    : '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
-});
-
-async function pip() {
-  try {
-    if (document.pictureInPictureElement) await document.exitPictureInPicture();
-    else await vid.requestPictureInPicture();
-  } catch(e) { console.warn("PiP não suportado ou falhou", e); }
-}
-
-
-window['__onGCastApiAvailable'] = function(ok) {
-  if (!ok) return;
-  cast.framework.CastContext.getInstance().setOptions({
-    receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-  });
-  cBtn.classList.add('show');
-  
-  cBtn.addEventListener('click', async () => {
-    const ctx = cast.framework.CastContext.getInstance();
-    if (ctx.getCastState() === cast.framework.CastState.CONNECTED) {
-      ctx.endCurrentSession(true); return;
-    }
-    try {
-      await ctx.requestSession();
-      const sess = ctx.getCurrentSession();
-      if (!sess) return;
-      
-      const currentUrl = CFG.sources[currentSourceIndex];
-      const mi = new chrome.cast.media.MediaInfo(currentUrl, 'application/x-mpegURL');
-      mi.metadata = new chrome.cast.media.GenericMediaMetadata();
-      mi.metadata.title = CFG.title;
-      mi.metadata.images = [{ url: CFG.poster }];
-      
-      await sess.loadMedia(new chrome.cast.media.LoadRequest(mi));
-      vid.pause();
-    } catch(e) { console.error("Erro no Cast", e); }
-  });
-  
-  cast.framework.CastContext.getInstance().addEventListener(
-    cast.framework.CastContextEventType.CAST_STATE_CHANGED, e => {
-      cBtn.classList.toggle('casting', e.castState === cast.framework.CastState.CONNECTED);
-    }
-  );
-};
-
-
-function loading(v) { spin.classList.toggle('on', v); }
-function showErr(msg) { loading(false); etxt.textContent = msg; err.style.display = 'flex'; }
-function hide() { err.style.display = 'none'; }
-
-function resetControlsTimeout() {
-  clearTimeout(controlsTimeout);
-  pw.classList.remove('hide-cursor');
-  if (!vid.paused) {
-    controlsTimeout = setTimeout(() => {
-      pw.classList.add('hide-cursor');
-    }, 3000);
-  }
-}
-pw.addEventListener('mousemove', resetControlsTimeout);
-pw.addEventListener('touchstart', resetControlsTimeout);
-
-
-document.addEventListener('keydown', e => {
-  if (/INPUT|TEXTAREA/.test(e.target.tagName)) return;
-  if (e.code === 'Space')      { e.preventDefault(); togglePlay(); }
-  if (e.code === 'KeyF')       toggleFS();
-  if (e.code === 'KeyM')       toggleMute();
-  if (e.code === 'ArrowUp')    { e.preventDefault(); vid.volume = Math.min(1, vid.volume + 0.1); vsl.value = vid.volume; updV(); }
-  if (e.code === 'ArrowDown')  { e.preventDefault(); vid.volume = Math.max(0, vid.volume - 0.1); vsl.value = vid.volume; updV(); }
-});
-
-
-init();
+})();
 </script>
 </body>
 </html>

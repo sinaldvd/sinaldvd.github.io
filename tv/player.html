@@ -5,66 +5,61 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Player</title>
+    <title>Player</title>
   
-<link rel="canonical" href="https://d1r94zrla0glo-cloudfront.vercel.app">
-<link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
-<link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
+    <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
+    <link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
   
-<link rel="preconnect" href="https://d1r94zrla0glo-cloudfront.vercel.app" crossorigin>
-<link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
-<link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
+    <link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-<script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.compiled.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/clappr/dash-shaka-playback@latest/dist/dash-shaka-playback.external.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
-<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.compiled.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/clappr/dash-shaka-playback@latest/dist/dash-shaka-playback.external.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
 
-<style>
-    html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: #000;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    }
+        #player {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
 
-    #player {
-        position: fixed;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 1;
-    }
+        #svg-spinner, .seek-disabled {
+            display: none !important;
+        }
 
-    #svg-spinner, .seek-disabled {
-        display: none !important;
-    }
-
-    video {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        background: #000;
-    }
-</style>
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+    </style>
 </head>
 <body>
-  
     <div id="player"></div>
-
 <script>
 (function(){
     const params = new URLSearchParams(window.location.search);
@@ -73,6 +68,7 @@
     const isValidId = (str) => /^[a-zA-Z0-9_-]+$/.test(str);
 
     if (!rawId || !isValidId(rawId)) {
+
         document.body.innerHTML = `
         <div style="color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000;">
             <h2 style="color:#ff4444; margin-bottom:10px;">Canal não informado ou inválido</h2>
@@ -87,71 +83,9 @@
         `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`  
     ];
 
-
-    const fallbackPoster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
-    let poster = fallbackPoster;
-
-
-    function normalizeStr(str) {
-        if (!str) return '';
-        return str
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') 
-            .replace(/[^a-z0-9]/g, '');      
-    }
-
-    function findBestMatch(id, canaisList) {
-        const normId = normalizeStr(id);
-        if (!normId || normId.length < 3) return null; 
-
-        let bestMatch = null;
-        let bestScore = 0;
-
-        for (const canal of canaisList) {
-            const normNome = normalizeStr(canal.nome_claro);
-            if (!normNome) continue;
-
-            let score = 0;
-
-
-            if (normNome === normId) {
-                score = 100;
-            } 
-
-            else if (normNome.startsWith(normId)) {
-                score = 80;
-            } 
-
-            else if (normNome.includes(normId)) {
-                score = 60;
-            } 
-
-            else if (normId.includes(normNome) && normNome.length >= 3) {
-                score = 40;
-            }
-
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestMatch = canal;
-            } 
-
-            else if (score === bestScore && score > 0 && bestMatch) {
-                const currentLen = normalizeStr(bestMatch.nome_claro).length;
-                const newLen = normNome.length;
-                if (newLen > currentLen) {
-                    bestMatch = canal;
-                }
-            }
-        }
-
-
-        return bestScore >= 50 ? bestMatch : null;
-    }
-    //
-
     let currentSourceIndex = 0; 
+    const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
+
     let player = null;
     let reconnectTimer = null;
     let initialLoadTimer = null;   
@@ -173,6 +107,7 @@
         }
         console.error("[Player] Erro fatal:", message);
         
+
         const errDiv = document.createElement('div');
         errDiv.style.cssText = 'color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000; z-index:999;';
         errDiv.innerHTML = `<h2 style="color:#ff4444; margin-bottom:10px;">Erro na Transmissão</h2><p>${message}</p>`;
@@ -194,7 +129,6 @@
 
         const activeSource = sources[currentSourceIndex];
         console.log(`[Player] Iniciando fonte ${currentSourceIndex + 1} (Tentativa ${retryCount + 1}):`, activeSource);
-        console.log(`[Player] Usando poster:`, poster);
 
         const plugins = [];
         if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
@@ -205,10 +139,7 @@
             player = new Clappr.Player({
                 parentId: "#player",
                 source: activeSource,
-                poster: {
-                    url: poster,
-                    showOnVideoEnd: false
-                },
+                poster: poster,
                 width: "100%",
                 height: "100%",
                 autoPlay: true, 
@@ -245,7 +176,7 @@
 
             player.on(Clappr.Events.PLAYER_PLAY, () => {
                 clearAllTimers();
-                retryCount = 0;
+                retryCount = 0; // Reseta o contador ao ter sucesso
                 console.log("[Player] Reprodução iniciada com sucesso.");
             });
 
@@ -308,39 +239,8 @@
         }
     });
 
-    async function init() {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-            const res = await fetch('https://d1r94zrla0glo-cloudfront.vercel.app/sinalpublico/poster/manifest.json', {
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-
-            if (res.ok) {
-                const data = await res.json();
-                if (data && data.canais && Array.isArray(data.canais)) {
-                    const matchedCanal = findBestMatch(canalId, data.canais);
-                    
-                    if (matchedCanal && matchedCanal.imagem_url) {
-                        poster = matchedCanal.imagem_url;
-                        console.log(`[Player] ✅ Poster API: ${poster}`);
-                    } else {
-                        console.log(`[Player] ℹ️ Poster fallback seguro.`);
-                    }
-                }
-            } else {
-                console.warn("[Player] ⚠️ Falha ao buscar.");
-            }
-        } catch (err) {
-            console.warn("[Player] ⚠️ Erro ao buscar.", err.message);
-        }
-
-        createPlayer();
-    }
-
-    init();
+    createPlayer();
 
 })();
 </script>

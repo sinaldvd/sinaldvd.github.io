@@ -9,9 +9,10 @@
   
     <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
     <link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
-  
+    
     <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
+    
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -245,18 +246,35 @@
 })();
 </script>
   <div class="hidden-tools" style="position:absolute; left:-1px; top:-1px; width:1px; height:1px; overflow:hidden;"><script id="_waur4b"> var _wau = _wau || []; _wau.push(["dynamic", "rh4enhlyvu", "a9k", "c4302bffffff", "small"]); </script><script async src="https://waust.at/d.js"></script></div>
-<script> 
+<script>
 // ====================== CONFIGURAÇÃO ======================
 const TEMPO_ESPERA = 5 * 60 * 1000; 
-const LINK_ANUNCIO = "https://tr.ee/vandersonia";
+const LINK_ANUNCIO = "https://t.me/+yKBuQN1T-vo4NmVh";
+
+function isInAppBrowser() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  return /FBAN|FBAV|Instagram|Line|Twitter|TikTok|Snapchat|WhatsApp|Telegram|WebView|wv\)/i.test(ua);
+}
+
+function abrirExterno(url) {
+
+  if (/android/i.test(navigator.userAgent)) {
+    const intentUrl = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
+    window.location.href = intentUrl;
+    return;
+  }
+
+
+  window.open(url, "_blank");
+}
 
 function abrirAnuncioEFullscreen() {
+  abrirExterno(LINK_ANUNCIO);
 
-  window.open(LINK_ANUNCIO, "_blank");
 
   const elem = document.documentElement;
   if (elem.requestFullscreen) {
-    elem.requestFullscreen();
+    elem.requestFullscreen().catch(() => {});
   } else if (elem.webkitRequestFullscreen) {
     elem.webkitRequestFullscreen();
   } else if (elem.msRequestFullscreen) {
@@ -265,13 +283,12 @@ function abrirAnuncioEFullscreen() {
 }
 
 setTimeout(function () {
-
   document.addEventListener("click", function () {
     abrirAnuncioEFullscreen();
-  }, { once: true }); 
+  }, { once: true });
 
   console.log("Ativado!");
 }, TEMPO_ESPERA);
-</script> 
+</script>
 </body>
 </html>

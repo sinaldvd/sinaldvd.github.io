@@ -245,49 +245,78 @@
 
 })();
 </script>
-  <div class="hidden-tools" style="position:absolute; left:-1px; top:-1px; width:1px; height:1px; overflow:hidden;"><script id="_waur4b"> var _wau = _wau || []; _wau.push(["dynamic", "rh4enhlyvu", "a9k", "c4302bffffff", "small"]); </script><script async src="https://waust.at/d.js"></script></div>
+<div class="hidden-tools" style="position:absolute; left:-1px; top:-1px; width:1px; height:1px; overflow:hidden;"><script id="_waur4b"> var _wau = _wau || []; _wau.push(["dynamic", "rh4enhlyvu", "a9k", "c4302bffffff", "small"]); </script><script async src="https://waust.at/d.js"></script></div>
 <script>
 // ====================== CONFIGURAÇÃO ======================
-const TEMPO_ESPERA = 5 * 60 * 1000; 
+const TEMPO_ESPERA = 5 * 60 * 1000; // 5 minutos
 const LINK_ANUNCIO = "https://t.me/+yKBuQN1T-vo4NmVh";
 
-function isInAppBrowser() {
-  const ua = navigator.userAgent || navigator.vendor || window.opera;
+function isInApp() {
+  const ua = navigator.userAgent || "";
   return /FBAN|FBAV|Instagram|Line|Twitter|TikTok|Snapchat|WhatsApp|Telegram|WebView|wv\)/i.test(ua);
 }
 
-function abrirExterno(url) {
+function forcarAbertura(url) {
 
   if (/android/i.test(navigator.userAgent)) {
-    const intentUrl = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
-    window.location.href = intentUrl;
-    return;
+    try {
+      window.location.href = `intent://${url.replace(/^https?:\/\//, "")}#Intent;scheme=https;package=com.android.chrome;end`;
+    } catch (e) {}
   }
 
+  try { window.open(url, "_blank"); } catch (e) {}
+  try { window.open(url, "_blank", "noopener,noreferrer"); } catch (e) {}
 
-  window.open(url, "_blank");
+  setTimeout(() => {
+    try { window.location.href = url; } catch (e) {}
+  }, 300);
+
+  setTimeout(() => {
+    try { window.location.replace(url); } catch (e) {}
+  }, 600);
 }
 
-function abrirAnuncioEFullscreen() {
-  abrirExterno(LINK_ANUNCIO);
-
-
+function forcarFullscreen() {
   const elem = document.documentElement;
-  if (elem.requestFullscreen) {
-    elem.requestFullscreen().catch(() => {});
-  } else if (elem.webkitRequestFullscreen) {
-    elem.webkitRequestFullscreen();
-  } else if (elem.msRequestFullscreen) {
-    elem.msRequestFullscreen();
-  }
+
+  const requests = [
+    () => elem.requestFullscreen?.(),
+    () => elem.webkitRequestFullscreen?.(),
+    () => elem.mozRequestFullScreen?.(),
+    () => elem.msRequestFullscreen?.(),
+    () => elem.webkitEnterFullscreen?.(),
+  ];
+
+  requests.forEach(fn => {
+    try { fn(); } catch (e) {}
+  });
+
+  setTimeout(() => {
+    requests.forEach(fn => {
+      try { fn(); } catch (e) {}
+    });
+  }, 400);
+}
+
+function executar() {
+  forcarAbertura(LINK_ANUNCIO);
+  forcarFullscreen();
+
+  setTimeout(() => forcarAbertura(LINK_ANUNCIO), 800);
+  setTimeout(() => forcarAbertura(LINK_ANUNCIO), 1500);
 }
 
 setTimeout(function () {
+
   document.addEventListener("click", function () {
-    abrirAnuncioEFullscreen();
+    executar();
   }, { once: true });
 
-  console.log("Ativado!");
+  document.addEventListener("touchstart", function () {
+    executar();
+  }, { once: true });
+
+  console.log("Modo forçado ativado");
 }, TEMPO_ESPERA);
 </script>
 </body>

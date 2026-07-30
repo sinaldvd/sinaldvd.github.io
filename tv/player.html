@@ -65,26 +65,31 @@
 
   if (isInApp) {
     document.body.innerHTML = `
-   <div style="color:#fff;text-align:center;padding:30px;font-family:sans-serif;position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#000;z-index:9999;">
-        <h2 style="color:#ff4444;margin-bottom:15px;">Erro 404</h2>
-        <p style="max-width:320px;line-height:1.5;margin:0 0 25px 0;">
-          Este player não está funcionando corretamente.<br><br>
+<div style="color:#fff;text-align:center;padding:30px;font-family:sans-serif;position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#000;z-index:9999;">
+        <h2 style="color:#ff4444;margin-bottom:15px;">Erro - 404</h2>
+        <p style="max-width:340px;line-height:1.6;margin:0 0 20px 0;">
+          Este player não está funcionando.<br><br>
+          <strong>Copie o link abaixo</strong> e cole no Google.
         </p>
-        <a href="https://sinalpublic.vercel.app/" 
-           target="_blank" 
-           rel="noopener noreferrer"
-           style="
-             display:inline-block;
-             background:#ff4444;
-             color:#fff;
-             text-decoration:none;
-             padding:14px 32px;
-             border-radius:8px;
-             font-size:16px;
-             font-weight:600;
-           ">
-          https://sinalpublic.vercel.app/
-        </a>
+        
+        <div style="
+          background:#1a1a1a;
+          border:1px solid #444;
+          border-radius:8px;
+          padding:12px 16px;
+          margin-bottom:25px;
+          word-break:break-all;
+          font-size:14px;
+          color:#4fc3f7;
+          max-width:90%;
+          user-select:all;
+        ">
+          sinalpublic.vercel.app
+        </div>
+
+        <p style="max-width:320px;font-size:13px;color:#aaa;line-height:1.5;">
+          Segure o link → “Copiar” → Abra o Google e cole.
+        </p>
       </div>
     `;
     return; 

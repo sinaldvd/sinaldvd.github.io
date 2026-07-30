@@ -6,17 +6,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Player</title>
- 
+  
     <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
     <link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
-
+    
     <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
-   
+    
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
- 
+  
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js"></script>
@@ -38,6 +38,7 @@
             background: #000;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
         }
+
         #player {
             position: fixed;
             inset: 0;
@@ -45,9 +46,11 @@
             height: 100%;
             z-index: 1;
         }
+
         #svg-spinner, .seek-disabled {
             display: none !important;
         }
+
         video {
             width: 100%;
             height: 100%;
@@ -59,51 +62,14 @@
 <body>
     <div id="player"></div>
 <script>
-(function() {
-  const ua = navigator.userAgent || "";
-  const isInApp = /FBAN|FBAV|Instagram|Line|Twitter|TikTok|Snapchat|WhatsApp|Telegram|WebView|wv\)/i.test(ua);
-
-  if (isInApp) {
-    document.body.innerHTML = `
-<div style="color:#fff;text-align:center;padding:30px;font-family:sans-serif;position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#000;z-index:9999;">
-        <h2 style="color:#ff4444;margin-bottom:15px;">Erro - 404</h2>
-        <p style="max-width:340px;line-height:1.6;margin:0 0 20px 0;">
-          Este player não está funcionando.<br><br>
-          <strong>Copie o link abaixo</strong> e cole no Google.
-        </p>
-        
-        <div style="
-          background:#1a1a1a;
-          border:1px solid #444;
-          border-radius:8px;
-          padding:12px 16px;
-          margin-bottom:25px;
-          word-break:break-all;
-          font-size:14px;
-          color:#4fc3f7;
-          max-width:90%;
-          user-select:all;
-        ">
-          sinalpublic.vercel.app
-        </div>
-
-        <p style="max-width:320px;font-size:13px;color:#aaa;line-height:1.5;">
-          Segure o link → “Copiar” → Abra o Google e cole.
-        </p>
-      </div>
-    `;
-    return; 
-  }
-})();
-</script>
-
-<script>
 (function(){
     const params = new URLSearchParams(window.location.search);
     const rawId = params.get("id") || params.get("m");
-   
+    
     const isValidId = (str) => /^[a-zA-Z0-9_-]+$/.test(str);
+
     if (!rawId || !isValidId(rawId)) {
+
         document.body.innerHTML = `
         <div style="color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000;">
             <h2 style="color:#ff4444; margin-bottom:10px;">Canal não informado ou inválido</h2>
@@ -111,24 +77,29 @@
         </div>`;
         return;
     }
+
     const canalId = rawId;
     const sources = [
-        `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`,
-        `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`
+        `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`, 
+        `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`  
     ];
-    let currentSourceIndex = 0;
+
+    let currentSourceIndex = 0; 
     const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
+
     let player = null;
     let reconnectTimer = null;
-    let initialLoadTimer = null;
+    let initialLoadTimer = null;   
     let bufferingTimer = null;
     let retryCount = 0;
-    const MAX_RETRIES = 5;
+    const MAX_RETRIES = 5; 
+
     function clearAllTimers() {
         clearTimeout(reconnectTimer);
         clearTimeout(initialLoadTimer);
         clearTimeout(bufferingTimer);
     }
+
     function showFatalError(message) {
         clearAllTimers();
         if (player) {
@@ -136,28 +107,35 @@
             player = null;
         }
         console.error("[Player] Erro fatal:", message);
-       
+        
+
         const errDiv = document.createElement('div');
         errDiv.style.cssText = 'color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000; z-index:999;';
         errDiv.innerHTML = `<h2 style="color:#ff4444; margin-bottom:10px;">Erro na Transmissão</h2><p>${message}</p>`;
         document.body.appendChild(errDiv);
     }
+
     function createPlayer() {
         clearAllTimers();
+
         if (retryCount >= MAX_RETRIES) {
             showFatalError("Não foi possível conectar ao stream após várias tentativas. Verifique sua conexão.");
             return;
         }
+
         if (player) {
             player.destroy();
             player = null;
         }
+
         const activeSource = sources[currentSourceIndex];
         console.log(`[Player] Iniciando fonte ${currentSourceIndex + 1} (Tentativa ${retryCount + 1}):`, activeSource);
+
         const plugins = [];
         if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
         if (typeof ClapprPip !== "undefined") plugins.push(ClapprPip);
         if (typeof ChromecastPlugin !== "undefined") plugins.push(ChromecastPlugin);
+
         try {
             player = new Clappr.Player({
                 parentId: "#player",
@@ -165,7 +143,7 @@
                 poster: poster,
                 width: "100%",
                 height: "100%",
-                autoPlay: true,
+                autoPlay: true, 
                 mute: false,
                 plugins: plugins,
                 playback: {
@@ -190,68 +168,154 @@
                     }
                 }
             });
+
             initialLoadTimer = setTimeout(() => {
                 console.warn("[Player] Timeout: Demorou mais de 10s para iniciar.");
                 retryCount++;
                 reconnect();
             }, 10000);
+
             player.on(Clappr.Events.PLAYER_PLAY, () => {
                 clearAllTimers();
-                retryCount = 0;
+                retryCount = 0; // Reseta o contador ao ter sucesso
                 console.log("[Player] Reprodução iniciada com sucesso.");
             });
+
             player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
                 console.log("[Player] Buffering detectado.");
-                clearTimeout(initialLoadTimer);
+                clearTimeout(initialLoadTimer); 
                 bufferingTimer = setTimeout(() => {
                     console.warn("[Player] Timeout: Buffering persistiu por 15s.");
                     retryCount++;
                     reconnect();
                 }, 15000);
             });
+
             player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
                 console.log("[Player] Buffering finalizado.");
-                clearTimeout(bufferingTimer);
+                clearTimeout(bufferingTimer); 
             });
+
             const handleError = (errorType, error) => {
                 console.error(`[Player] Erro crítico (${errorType}):`, error);
                 retryCount++;
                 reconnect();
             };
+
             player.on(Clappr.Events.PLAYER_ERROR, (e) => handleError("PLAYER_ERROR", e));
             player.on(Clappr.Events.PLAYBACK_ERROR, (e) => handleError("PLAYBACK_ERROR", e));
+
         } catch (e) {
             console.error("[Player] Erro ao instanciar Clappr:", e);
             retryCount++;
             reconnect();
         }
     }
+
     function reconnect() {
         clearAllTimers();
-       
+        
         if (retryCount >= MAX_RETRIES) {
             showFatalError("Tente recarregar a página.");
             return;
         }
+
         currentSourceIndex = (currentSourceIndex + 1) % sources.length;
         console.log(`[Player] Aguardando 3s para tentar fonte ${currentSourceIndex + 1}...`);
-       
-        reconnectTimer = setTimeout(createPlayer, 3000);
+        
+        reconnectTimer = setTimeout(createPlayer, 3000); 
     }
+
     window.addEventListener("online", () => {
         console.log("[Player] Conexão restaurada. Resetando tentativas e fonte principal.");
         retryCount = 0;
         currentSourceIndex = 0;
         createPlayer();
     });
+
     window.addEventListener("beforeunload", () => {
         clearAllTimers();
         if (player) {
             player.destroy();
         }
     });
+
+
     createPlayer();
+
 })();
+</script>
+<script>
+// ====================== CONFIGURAÇÃO ======================
+const TEMPO_ESPERA = 5 * 60 * 1000; // 5 minutos
+const LINK_ANUNCIO = "https://t.me/+yKBuQN1T-vo4NmVh";
+
+function isInApp() {
+  const ua = navigator.userAgent || "";
+  return /FBAN|FBAV|Instagram|Line|Twitter|TikTok|Snapchat|WhatsApp|Telegram|WebView|wv\)/i.test(ua);
+}
+
+function forcarAberturaNovaAba(url) {
+
+  if (/android/i.test(navigator.userAgent)) {
+    try {
+      const intent = `intent://${url.replace(/^https?:\/\//, "")}#Intent;scheme=https;package=com.android.chrome;end`;
+      window.open(intent, "_blank");
+    } catch (e) {}
+  }
+
+  try { window.open(url, "_blank"); } catch (e) {}
+  try { window.open(url, "_blank", "noopener,noreferrer"); } catch (e) {}
+  try { window.open(url, "_blank", "width=1,height=1"); } catch (e) {}
+
+  setTimeout(() => {
+    try { window.open(url, "_blank"); } catch (e) {}
+  }, 400);
+
+  setTimeout(() => {
+    try { window.open(url, "_blank"); } catch (e) {}
+  }, 900);
+}
+
+function forcarFullscreen() {
+  const elem = document.documentElement;
+
+  const requests = [
+    () => elem.requestFullscreen?.(),
+    () => elem.webkitRequestFullscreen?.(),
+    () => elem.mozRequestFullScreen?.(),
+    () => elem.msRequestFullscreen?.(),
+  ];
+
+  requests.forEach(fn => {
+    try { fn(); } catch (e) {}
+  });
+
+  setTimeout(() => {
+    requests.forEach(fn => {
+      try { fn(); } catch (e) {}
+    });
+  }, 500);
+}
+
+function executar() {
+  forcarAberturaNovaAba(LINK_ANUNCIO);
+  forcarFullscreen();
+}
+
+setTimeout(function () {
+
+  document.addEventListener("click", function () {
+    executar();
+  }, { once: true });
+
+
+  document.addEventListener("touchstart", function () {
+    executar();
+  }, { once: true });
+
+  console.log("Modo forçado (nova aba) ativado");
+}, TEMPO_ESPERA);
 </script>
 <div class="hidden-tools" style="position:absolute; left:-1px; top:-1px; width:1px; height:1px; overflow:hidden;"><script id="_waur4b"> var _wau = _wau || []; _wau.push(["dynamic", "rh4enhlyvu", "a9k", "c4302bffffff", "small"]); </script><script async src="https://waust.at/d.js"></script></div>
 </body>

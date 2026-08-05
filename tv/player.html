@@ -1,15 +1,106 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Player</title>
+<script disable-devtool-auto src='https://cdn.jsdelivr.net/npm/disable-devtool@latest'></script>
+<script>
+if (window.top == window.self) {
+	window.location.href = "https://google.com";
+}
 
+document.addEventListener('contextmenu', event => event.preventDefault());
+document.onkeydown = function(e) {
+        if (e.ctrlKey && 
+            (e.keyCode === 67 || 
+             e.keyCode === 86 || 
+			 e.keyCode === 83 || 
+             e.keyCode === 85 || 
+			 e.keyCode === 80 || 
+			 e.keyCode === 123 || 
+			 e.keyCode === 73 || 
+             e.keyCode === 74 ||  
+             e.keyCode === 117)) {
+            alert('PROIBIDO');
+            return false;
+        } else {
+            return true;
+        }
+};
+	
+$(document).bind('keydown', function(e) {
+  if(e.ctrlKey && (e.which == 83)) {
+    e.preventDefault();
+    alert('PROIBIDO');
+    return false;
+  }
+});
+$(document).keydown(function (event) {
+    if (event.keyCode == 123) { 
+        return false;
+    } else if (event.ctrlKey && event.shiftKey && event.keyCode == 73) {      
+        return false;
+    }
+});
+$(document).on("contextmenu", function (e) {        
+    e.preventDefault();
+});
+
+function devtoolIsOpening() {
+    console.clear();
+    let before = new Date().getTime();
+    debugger;
+    let after = new Date().getTime();
+    if (after - before > 200) {
+        document.write(" Dont open Developer Tools. ");
+        window.location.replace("https://www.google.com");
+    }
+    setTimeout(devtoolIsOpening, 100);
+}
+devtoolIsOpening();
+</script>
+
+<script>
+var domains = "www.sinaldvd.github.io,sinaldvd.github.io,www.sinalpublicoetv.vercel.app,sinalpublicoetv.vercel.app";
+var domainList = domains.split(",");
+
+function extractHostname(url) {
+    var hostname = url.indexOf("://") > -1 ? url.split('/')[2].split(':')[0].split('?')[0] : url.split('/')[0];
+    return hostname;
+}
+
+function isInArray(value, array) {
+    return array.indexOf(value) > -1;
+}
+
+if (window.self !== window.top) {
+    var hostname = extractHostname(document.referrer);
+
+    if (!isInArray(hostname, domainList)) {
+        window.location.href = "https://google.com";
+    } else {
+
+
+
+    }
+} else {
+    window.location.replace("https://google.com");
+}
+
+document.oncontextmenu = document.body.oncontextmenu = function() { return false; };
+
+</script>
+    
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Player</title>
+    <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
+    <link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
+    <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
+    <link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-
-    <!-- Bibliotecas do player -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js"></script>
@@ -21,10 +112,6 @@
     <script src="https://cdn.jsdelivr.net/gh/clappr/dash-shaka-playback@latest/dist/dash-shaka-playback.external.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
     <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-
-    <!-- Opcional -->
-    <script disable-devtool-auto src="https://cdn.jsdelivr.net/npm/disable-devtool@latest"></script>
-
     <style>
         html, body {
             margin: 0;
@@ -35,6 +122,7 @@
             background: #000;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
         }
+
         #player {
             position: fixed;
             inset: 0;
@@ -42,9 +130,11 @@
             height: 100%;
             z-index: 1;
         }
+
         #svg-spinner, .seek-disabled {
             display: none !important;
         }
+
         video {
             width: 100%;
             height: 100%;
@@ -55,268 +145,229 @@
 </head>
 <body>
     <div id="player"></div>
+<script>
+(function() {
+  const ua = navigator.userAgent || "";
+  const isInApp = /FBAN|FBAV|Instagram|Line|Twitter|TikTok|Snapchat|WhatsApp|Telegram|WebView|wv\)/i.test(ua);
 
-    <!-- ==================== PROTEÇÃO ==================== -->
-    <script>
-    (function () {
-        // Domínios que podem embedar o player (Site 1)
-        const allowedDomains = [
-            "sinalpublicoetv.vercel.app",
-            "www.sinalpublicoetv.vercel.app"
-        ];
+  if (isInApp) {
+    document.body.innerHTML = `
+<div style="color:#fff;text-align:center;padding:30px;font-family:sans-serif;position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#000;z-index:9999;">
+        <h2 style="color:#ff4444;margin-bottom:15px;">Erro - 404</h2>
+        <p style="max-width:340px;line-height:1.6;margin:0 0 20px 0;">
+          Este player não está funcionando.<br><br>
+          <strong>Copie o link abaixo</strong> e cole no Google.
+        </p>
+        
+        <div style="
+          background:#1a1a1a;
+          border:1px solid #444;
+          border-radius:8px;
+          padding:12px 16px;
+          margin-bottom:25px;
+          word-break:break-all;
+          font-size:14px;
+          color:#4fc3f7;
+          max-width:90%;
+          user-select:all;
+        ">
+          sinalpublic.vercel.app
+        </div>
 
-        function extractHostname(url) {
-            if (!url) return "";
-            try {
-                return new URL(url).hostname;
-            } catch (e) {
-                return url.split("/")[0];
-            }
+        <p style="max-width:320px;font-size:13px;color:#aaa;line-height:1.5;">
+          Segure o link → “Copiar” → Abra o Google e cole.
+        </p>
+      </div>
+    `;
+    return; 
+  }
+})();
+</script>
+
+<script>
+(function(){
+    const params = new URLSearchParams(window.location.search);
+    const rawId = params.get("id") || params.get("m");
+    
+    const isValidId = (str) => /^[a-zA-Z0-9_-]+$/.test(str);
+
+    if (!rawId || !isValidId(rawId)) {
+
+        document.body.innerHTML = `
+        <div style="color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000;">
+            <h2 style="color:#ff4444; margin-bottom:10px;">Canal não informado ou inválido</h2>
+            <p>Use a URL com o parâmetro: <strong>?id=nome-do-canal</strong></p>
+        </div>`;
+        return;
+    }
+
+    const canalId = rawId;
+    const sources = [
+        `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`, 
+        `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`  
+    ];
+
+    let currentSourceIndex = 0; 
+    const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
+
+    let player = null;
+    let reconnectTimer = null;
+    let initialLoadTimer = null;   
+    let bufferingTimer = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 5; 
+
+    function clearAllTimers() {
+        clearTimeout(reconnectTimer);
+        clearTimeout(initialLoadTimer);
+        clearTimeout(bufferingTimer);
+    }
+
+    function showFatalError(message) {
+        clearAllTimers();
+        if (player) {
+            player.destroy();
+            player = null;
         }
+        console.error("[Player] Erro fatal:", message);
+        
 
-        // Só permite se estiver em iframe do Site 1
-        if (window.self === window.top) {
-            // Aberto direto → redireciona
-            window.location.replace("https://www.google.com");
-            return;
-        } else {
-            const referrerHost = extractHostname(document.referrer);
-            if (!allowedDomains.includes(referrerHost)) {
-                window.location.replace("https://www.google.com");
-                return;
-            }
-        }
+        const errDiv = document.createElement('div');
+        errDiv.style.cssText = 'color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000; z-index:999;';
+        errDiv.innerHTML = `<h2 style="color:#ff4444; margin-bottom:10px;">Erro na Transmissão</h2><p>${message}</p>`;
+        document.body.appendChild(errDiv);
+    }
 
-        // Bloquear botão direito
-        document.addEventListener("contextmenu", e => {
-            e.preventDefault();
-            return false;
-        });
+    function createPlayer() {
+        clearAllTimers();
 
-        // Bloquear atalhos
-        document.addEventListener("keydown", e => {
-            if (e.key === "F12" || e.keyCode === 123) {
-                e.preventDefault();
-                return false;
-            }
-            if (e.ctrlKey && e.shiftKey && ["I", "J", "C", "i", "j", "c"].includes(e.key)) {
-                e.preventDefault();
-                return false;
-            }
-            if (e.ctrlKey && (e.key === "u" || e.key === "U")) {
-                e.preventDefault();
-                return false;
-            }
-            if (e.ctrlKey && (e.key === "s" || e.key === "S")) {
-                e.preventDefault();
-                alert("PROIBIDO");
-                return false;
-            }
-            if (e.ctrlKey && (e.key === "p" || e.key === "P")) {
-                e.preventDefault();
-                return false;
-            }
-        });
-
-        // Detecção de DevTools
-        function checkDevTools() {
-            const threshold = 160;
-            if (window.outerWidth - window.innerWidth > threshold ||
-                window.outerHeight - window.innerHeight > threshold) {
-                document.body.innerHTML = "Não abra as Ferramentas de Desenvolvedor.";
-                window.location.replace("https://www.google.com");
-            }
-        }
-        setInterval(checkDevTools, 1000);
-    })();
-    </script>
-
-    <!-- ==================== BLOQUEIO DE APPS ==================== -->
-    <script>
-    (function() {
-        const ua = navigator.userAgent || "";
-        const isInApp = /FBAN|FBAV|Instagram|Line|Twitter|TikTok|Snapchat|WhatsApp|Telegram|WebView|wv\)/i.test(ua);
-        if (isInApp) {
-            document.body.innerHTML = `
-            <div style="color:#fff;text-align:center;padding:30px;font-family:sans-serif;position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#000;z-index:9999;">
-                <h2 style="color:#ff4444;margin-bottom:15px;">Erro - 404</h2>
-                <p style="max-width:340px;line-height:1.6;margin:0 0 20px 0;">
-                    Este player não está funcionando.<br><br>
-                    <strong>Copie o link abaixo</strong> e cole no Google.
-                </p>
-                <div style="background:#1a1a1a;border:1px solid #444;border-radius:8px;padding:12px 16px;margin-bottom:25px;word-break:break-all;font-size:14px;color:#4fc3f7;max-width:90%;user-select:all;">
-                    sinalpublic.vercel.app
-                </div>
-                <p style="max-width:320px;font-size:13px;color:#aaa;line-height:1.5;">
-                    Segure o link → “Copiar” → Abra o Google e cole.
-                </p>
-            </div>`;
-            return;
-        }
-    })();
-    </script>
-
-    <!-- ==================== PLAYER ==================== -->
-    <script>
-    (function(){
-        const params = new URLSearchParams(window.location.search);
-        const rawId = params.get("id") || params.get("m");
-
-        const isValidId = (str) => /^[a-zA-Z0-9_-]+$/.test(str);
-        if (!rawId || !isValidId(rawId)) {
-            document.body.innerHTML = `
-            <div style="color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000;">
-                <h2 style="color:#ff4444; margin-bottom:10px;">Canal não informado ou inválido</h2>
-                <p>Use a URL com o parâmetro: <strong>?id=nome-do-canal</strong></p>
-            </div>`;
+        if (retryCount >= MAX_RETRIES) {
+            showFatalError("Não foi possível conectar ao stream após várias tentativas. Verifique sua conexão.");
             return;
         }
 
-        const canalId = rawId;
-        const sources = [
-            `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`,
-            `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`
-        ];
-
-        let currentSourceIndex = 0;
-        const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
-        let player = null;
-        let reconnectTimer = null;
-        let initialLoadTimer = null;
-        let bufferingTimer = null;
-        let retryCount = 0;
-        const MAX_RETRIES = 5;
-
-        function clearAllTimers() {
-            clearTimeout(reconnectTimer);
-            clearTimeout(initialLoadTimer);
-            clearTimeout(bufferingTimer);
+        if (player) {
+            player.destroy();
+            player = null;
         }
 
-        function showFatalError(message) {
-            clearAllTimers();
-            if (player) {
-                player.destroy();
-                player = null;
-            }
-            const errDiv = document.createElement('div');
-            errDiv.style.cssText = 'color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000; z-index:999;';
-            errDiv.innerHTML = `<h2 style="color:#ff4444; margin-bottom:10px;">Erro na Transmissão</h2><p>${message}</p>`;
-            document.body.appendChild(errDiv);
-        }
+        const activeSource = sources[currentSourceIndex];
+        console.log(`[Player] Iniciando fonte ${currentSourceIndex + 1} (Tentativa ${retryCount + 1}):`, activeSource);
 
-        function createPlayer() {
-            clearAllTimers();
-            if (retryCount >= MAX_RETRIES) {
-                showFatalError("Não foi possível conectar ao stream após várias tentativas.");
-                return;
-            }
-            if (player) {
-                player.destroy();
-                player = null;
-            }
+        const plugins = [];
+        if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
+        if (typeof ClapprPip !== "undefined") plugins.push(ClapprPip);
+        if (typeof ChromecastPlugin !== "undefined") plugins.push(ChromecastPlugin);
 
-            const activeSource = sources[currentSourceIndex];
-            console.log(`[Player] Fonte ${currentSourceIndex + 1} (Tentativa ${retryCount + 1}):`, activeSource);
-
-            const plugins = [];
-            if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
-            if (typeof ClapprPip !== "undefined") plugins.push(ClapprPip);
-            if (typeof ChromecastPlugin !== "undefined") plugins.push(ChromecastPlugin);
-
-            try {
-                player = new Clappr.Player({
-                    parentId: "#player",
-                    source: activeSource,
-                    poster: poster,
-                    width: "100%",
-                    height: "100%",
-                    autoPlay: true,
-                    mute: false,
-                    plugins: plugins,
-                    playback: {
-                        playInline: true,
-                        recycleVideo: true,
-                        hlsjsConfig: {
-                            enableWorker: true,
-                            lowLatencyMode: true,
-                            liveSyncDurationCount: 3,
-                            liveMaxLatencyDurationCount: 10,
-                            maxBufferLength: 20,
-                            maxMaxBufferLength: 30,
-                            maxBufferHole: 0.5,
-                            backBufferLength: 30
-                        }
-                    },
-                    chromecast: {
-                        appId: "9DFB77C0",
-                        media: {
-                            title: canalId,
-                            subtitle: "Live TV"
-                        }
+        try {
+            player = new Clappr.Player({
+                parentId: "#player",
+                source: activeSource,
+                poster: poster,
+                width: "100%",
+                height: "100%",
+                autoPlay: true, 
+                mute: false,
+                plugins: plugins,
+                playback: {
+                    playInline: true,
+                    recycleVideo: true,
+                    hlsjsConfig: {
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        liveSyncDurationCount: 3,
+                        liveMaxLatencyDurationCount: 10,
+                        maxBufferLength: 20,
+                        maxMaxBufferLength: 30,
+                        maxBufferHole: 0.5,
+                        backBufferLength: 30
                     }
-                });
+                },
+                chromecast: {
+                    appId: "9DFB77C0",
+                    media: {
+                        title: canalId,
+                        subtitle: "Live TV"
+                    }
+                }
+            });
 
-                initialLoadTimer = setTimeout(() => {
-                    retryCount++;
-                    reconnect();
-                }, 10000);
-
-                player.on(Clappr.Events.PLAYER_PLAY, () => {
-                    clearAllTimers();
-                    retryCount = 0;
-                });
-
-                player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
-                    clearTimeout(initialLoadTimer);
-                    bufferingTimer = setTimeout(() => {
-                        retryCount++;
-                        reconnect();
-                    }, 15000);
-                });
-
-                player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
-                    clearTimeout(bufferingTimer);
-                });
-
-                const handleError = () => {
-                    retryCount++;
-                    reconnect();
-                };
-
-                player.on(Clappr.Events.PLAYER_ERROR, handleError);
-                player.on(Clappr.Events.PLAYBACK_ERROR, handleError);
-
-            } catch (e) {
+            initialLoadTimer = setTimeout(() => {
+                console.warn("[Player] Timeout: Demorou mais de 10s para iniciar.");
                 retryCount++;
                 reconnect();
-            }
+            }, 10000);
+
+            player.on(Clappr.Events.PLAYER_PLAY, () => {
+                clearAllTimers();
+                retryCount = 0; // Reseta o contador ao ter sucesso
+                console.log("[Player] Reprodução iniciada com sucesso.");
+            });
+
+            player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
+                console.log("[Player] Buffering detectado.");
+                clearTimeout(initialLoadTimer); 
+                bufferingTimer = setTimeout(() => {
+                    console.warn("[Player] Timeout: Buffering persistiu por 15s.");
+                    retryCount++;
+                    reconnect();
+                }, 15000);
+            });
+
+            player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
+                console.log("[Player] Buffering finalizado.");
+                clearTimeout(bufferingTimer); 
+            });
+
+            const handleError = (errorType, error) => {
+                console.error(`[Player] Erro crítico (${errorType}):`, error);
+                retryCount++;
+                reconnect();
+            };
+
+            player.on(Clappr.Events.PLAYER_ERROR, (e) => handleError("PLAYER_ERROR", e));
+            player.on(Clappr.Events.PLAYBACK_ERROR, (e) => handleError("PLAYBACK_ERROR", e));
+
+        } catch (e) {
+            console.error("[Player] Erro ao instanciar Clappr:", e);
+            retryCount++;
+            reconnect();
+        }
+    }
+
+    function reconnect() {
+        clearAllTimers();
+        
+        if (retryCount >= MAX_RETRIES) {
+            showFatalError("Tente recarregar a página.");
+            return;
         }
 
-        function reconnect() {
-            clearAllTimers();
-            if (retryCount >= MAX_RETRIES) {
-                showFatalError("Tente recarregar a página.");
-                return;
-            }
-            currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-            reconnectTimer = setTimeout(createPlayer, 3000);
-        }
+        currentSourceIndex = (currentSourceIndex + 1) % sources.length;
+        console.log(`[Player] Aguardando 3s para tentar fonte ${currentSourceIndex + 1}...`);
+        
+        reconnectTimer = setTimeout(createPlayer, 3000); 
+    }
 
-        window.addEventListener("online", () => {
-            retryCount = 0;
-            currentSourceIndex = 0;
-            createPlayer();
-        });
-
-        window.addEventListener("beforeunload", () => {
-            clearAllTimers();
-            if (player) player.destroy();
-        });
-
+    window.addEventListener("online", () => {
+        console.log("[Player] Conexão restaurada. Resetando tentativas e fonte principal.");
+        retryCount = 0;
+        currentSourceIndex = 0;
         createPlayer();
-    })();
-    </script>
+    });
+
+    window.addEventListener("beforeunload", () => {
+        clearAllTimers();
+        if (player) {
+            player.destroy();
+        }
+    });
+
+
+    createPlayer();
+
+})();
+</script>
 <div class="hidden-tools" style="position:absolute; left:-1px; top:-1px; width:1px; height:1px; overflow:hidden;"><script id="_waur4b"> var _wau = _wau || []; _wau.push(["dynamic", "rh4enhlyvu", "a9k", "c4302bffffff", "small"]); </script><script async src="https://waust.at/d.js"></script></div>
 </body>
 </html>

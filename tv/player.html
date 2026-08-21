@@ -62,187 +62,186 @@
 <body>
     <div id="player"></div>
 <script>
-(function(){
-    const params = new URLSearchParams(window.location.search);
-    const rawId = params.get("id") || params.get("m");
-    
-    const isValidId = (str) => /^[a-zA-Z0-9_-]+$/.test(str);
+(function () {
+  "use strict";
 
-    if (!rawId || !isValidId(rawId)) {
+  const params = new URLSearchParams(window.location.search);
+  const rawId = params.get("id") || params.get("m");
 
-        document.body.innerHTML = `
-        <div style="color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000;">
-            <h2 style="color:#ff4444; margin-bottom:10px;">Canal não informado ou inválido</h2>
-            <p>Use a URL com o parâmetro: <strong>?id=nome-do-canal</strong></p>
-        </div>`;
-        return;
+  const isValidId = (str) => /^[a-zA-Z0-9_-]+$/.test(str);
+
+  if (!rawId || !isValidId(rawId)) {
+    document.body.innerHTML = `
+      <div style="color:#fff;text-align:center;padding:20px;font-family:sans-serif;position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#000;">
+        <h2 style="color:#ff4444;margin-bottom:10px;">Canal não informado ou inválido</h2>
+        <p>Use a URL com o parâmetro: <strong>?id=nome-do-canal</strong></p>
+      </div>`;
+    return;
+  }
+
+  const canalId = rawId;
+  const sources = [
+    `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`,
+    `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`
+  ];
+
+  let currentSourceIndex = 0;
+  const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
+
+  let player = null;
+  let reconnectTimer = null;
+  let initialLoadTimer = null;
+  let bufferingTimer = null;
+  let retryCount = 0;
+  const MAX_RETRIES = 8;
+
+  function clearAllTimers() {
+    clearTimeout(reconnectTimer);
+    clearTimeout(initialLoadTimer);
+    clearTimeout(bufferingTimer);
+  }
+
+  function destroyPlayer() {
+    if (player) {
+      try {
+        player.destroy();
+      } catch (e) {}
+      player = null;
+    }
+  }
+
+  function showFatalError(message) {
+    clearAllTimers();
+    destroyPlayer();
+    document.body.innerHTML = `
+      <div style="color:#fff;text-align:center;padding:20px;font-family:sans-serif;position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#000;z-index:999;">
+        <h2 style="color:#ff4444;margin-bottom:10px;">Erro na Transmissão</h2>
+        <p>${message}</p>
+        <p style="margin-top:12px;opacity:.7;font-size:14px;">Recarregue a página ou tente novamente mais tarde.</p>
+      </div>`;
+  }
+
+  function createPlayer() {
+    clearAllTimers();
+
+    if (retryCount >= MAX_RETRIES) {
+      showFatalError("Não foi possível conectar ao stream após várias tentativas.");
+      return;
     }
 
-    const canalId = rawId;
-    const sources = [
-        `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`, 
-        `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`  
-    ];
+    destroyPlayer();
 
-    let currentSourceIndex = 0; 
-    const poster = `https://disret.disret.workers.dev/?url=https://img.faz-o-eli.online/${canalId}.prev.png`;
+    const activeSource = sources[currentSourceIndex];
 
-    let player = null;
-    let reconnectTimer = null;
-    let initialLoadTimer = null;   
-    let bufferingTimer = null;
-    let retryCount = 0;
-    const MAX_RETRIES = 5; 
+    const plugins = [];
+    if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
+    if (typeof ClapprPip !== "undefined") plugins.push(ClapprPip);
+    if (typeof ChromecastPlugin !== "undefined") plugins.push(ChromecastPlugin);
 
-    function clearAllTimers() {
-        clearTimeout(reconnectTimer);
-        clearTimeout(initialLoadTimer);
-        clearTimeout(bufferingTimer);
-    }
+    try {
+      player = new Clappr.Player({
+        parentId: "#player",
+        source: activeSource,
+        poster: poster,
+        width: "100%",
+        height: "100%",
+        autoPlay: true,
+        mute: false,
+        mediainfo: {
+          title: canalId,
+          description: "Live TV"
+        },
+        plugins: plugins,
+        playback: {
+          playInline: true,
+          recycleVideo: true,
+          crossOrigin: "anonymous",
+          hlsjsConfig: {
+            enableWorker: true,
+            lowLatencyMode: true,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 12,
+            maxBufferLength: 25,
+            maxMaxBufferLength: 40,
+            maxBufferHole: 0.8,
+            backBufferLength: 30,
+            fragLoadingMaxRetry: 6,
+            manifestLoadingMaxRetry: 6,
+            levelLoadingMaxRetry: 6
+          }
+        },
+        chromecast: {
+          appId: "9DFB77C0",
+          media: {
+            title: canalId,
+            subtitle: "Live TV"
+          }
+        }
+      });
 
-    function showFatalError(message) {
+      initialLoadTimer = setTimeout(() => {
+        retryCount++;
+        reconnect();
+      }, 12000);
+
+      player.on(Clappr.Events.PLAYER_PLAY, () => {
         clearAllTimers();
-        if (player) {
-            player.destroy();
-            player = null;
-        }
-        console.error("[Player] Erro fatal:", message);
-        
-
-        const errDiv = document.createElement('div');
-        errDiv.style.cssText = 'color:#fff; text-align:center; padding:20px; font-family:sans-serif; position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000; z-index:999;';
-        errDiv.innerHTML = `<h2 style="color:#ff4444; margin-bottom:10px;">Erro na Transmissão</h2><p>${message}</p>`;
-        document.body.appendChild(errDiv);
-    }
-
-    function createPlayer() {
-        clearAllTimers();
-
-        if (retryCount >= MAX_RETRIES) {
-            showFatalError("Não foi possível conectar ao stream após várias tentativas. Verifique sua conexão.");
-            return;
-        }
-
-        if (player) {
-            player.destroy();
-            player = null;
-        }
-
-        const activeSource = sources[currentSourceIndex];
-        console.log(`[Player] Iniciando fonte ${currentSourceIndex + 1} (Tentativa ${retryCount + 1}):`, activeSource);
-
-        const plugins = [];
-        if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
-        if (typeof ClapprPip !== "undefined") plugins.push(ClapprPip);
-        if (typeof ChromecastPlugin !== "undefined") plugins.push(ChromecastPlugin);
-
-        try {
-            player = new Clappr.Player({
-                parentId: "#player",
-                source: activeSource,
-                poster: poster,
-                width: "100%",
-                height: "100%",
-                autoPlay: true, 
-                mute: false,
-                plugins: plugins,
-                playback: {
-                    playInline: true,
-                    recycleVideo: true,
-                    hlsjsConfig: {
-                        enableWorker: true,
-                        lowLatencyMode: true,
-                        liveSyncDurationCount: 3,
-                        liveMaxLatencyDurationCount: 10,
-                        maxBufferLength: 20,
-                        maxMaxBufferLength: 30,
-                        maxBufferHole: 0.5,
-                        backBufferLength: 30
-                    }
-                },
-                chromecast: {
-                    appId: "9DFB77C0",
-                    media: {
-                        title: canalId,
-                        subtitle: "Live TV"
-                    }
-                }
-            });
-
-            initialLoadTimer = setTimeout(() => {
-                console.warn("[Player] Timeout: Demorou mais de 10s para iniciar.");
-                retryCount++;
-                reconnect();
-            }, 10000);
-
-            player.on(Clappr.Events.PLAYER_PLAY, () => {
-                clearAllTimers();
-                retryCount = 0; // Reseta o contador ao ter sucesso
-                console.log("[Player] Reprodução iniciada com sucesso.");
-            });
-
-            player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
-                console.log("[Player] Buffering detectado.");
-                clearTimeout(initialLoadTimer); 
-                bufferingTimer = setTimeout(() => {
-                    console.warn("[Player] Timeout: Buffering persistiu por 15s.");
-                    retryCount++;
-                    reconnect();
-                }, 15000);
-            });
-
-            player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
-                console.log("[Player] Buffering finalizado.");
-                clearTimeout(bufferingTimer); 
-            });
-
-            const handleError = (errorType, error) => {
-                console.error(`[Player] Erro crítico (${errorType}):`, error);
-                retryCount++;
-                reconnect();
-            };
-
-            player.on(Clappr.Events.PLAYER_ERROR, (e) => handleError("PLAYER_ERROR", e));
-            player.on(Clappr.Events.PLAYBACK_ERROR, (e) => handleError("PLAYBACK_ERROR", e));
-
-        } catch (e) {
-            console.error("[Player] Erro ao instanciar Clappr:", e);
-            retryCount++;
-            reconnect();
-        }
-    }
-
-    function reconnect() {
-        clearAllTimers();
-        
-        if (retryCount >= MAX_RETRIES) {
-            showFatalError("Tente recarregar a página.");
-            return;
-        }
-
-        currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-        console.log(`[Player] Aguardando 3s para tentar fonte ${currentSourceIndex + 1}...`);
-        
-        reconnectTimer = setTimeout(createPlayer, 3000); 
-    }
-
-    window.addEventListener("online", () => {
-        console.log("[Player] Conexão restaurada. Resetando tentativas e fonte principal.");
         retryCount = 0;
-        currentSourceIndex = 0;
-        createPlayer();
-    });
+      });
 
-    window.addEventListener("beforeunload", () => {
-        clearAllTimers();
-        if (player) {
-            player.destroy();
-        }
-    });
+      player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
+        clearTimeout(initialLoadTimer);
+        bufferingTimer = setTimeout(() => {
+          retryCount++;
+          reconnect();
+        }, 18000);
+      });
 
+      player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
+        clearTimeout(bufferingTimer);
+      });
 
+      const handleError = () => {
+        retryCount++;
+        reconnect();
+      };
+
+      player.on(Clappr.Events.PLAYER_ERROR, handleError);
+      player.on(Clappr.Events.PLAYBACK_ERROR, handleError);
+
+    } catch (e) {
+      retryCount++;
+      reconnect();
+    }
+  }
+
+  function reconnect() {
+    clearAllTimers();
+
+    if (retryCount >= MAX_RETRIES) {
+      showFatalError("Tente recarregar a página.");
+      return;
+    }
+
+    currentSourceIndex = (currentSourceIndex + 1) % sources.length;
+
+    const delay = Math.min(3000 + (retryCount * 1000), 8000);
+
+    reconnectTimer = setTimeout(createPlayer, delay);
+  }
+
+  window.addEventListener("online", () => {
+    retryCount = 0;
+    currentSourceIndex = 0;
     createPlayer();
+  });
 
+  window.addEventListener("beforeunload", () => {
+    clearAllTimers();
+    destroyPlayer();
+  });
+
+  createPlayer();
 })();
 </script>
 <div class="hidden-tools" style="position:absolute; left:-1px; top:-1px; width:1px; height:1px; overflow:hidden;"><script id="_waur4b"> var _wau = _wau || []; _wau.push(["dynamic", "rh4enhlyvu", "a9k", "c4302bffffff", "small"]); </script><script async src="https://waust.at/d.js"></script></div>

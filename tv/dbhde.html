@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Player</title>
 
-  <!-- Preconnect -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 
@@ -15,34 +14,22 @@
   <script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
 
-  <!-- P2P Media Loader (versão que funciona) -->
+  <!-- P2P Media Loader -->
   <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/dist/p2p-media-loader-hlsjs.iife.min.js"></script>
 
-  <!-- Chromecast -->
   <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
       overflow: hidden;
       background: #000;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     }
     #player {
       position: fixed;
       inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: #000;
+      width: 100%; height: 100%;
     }
   </style>
 </head>
@@ -83,17 +70,8 @@
     let initialLoadTimer = null;
     let bufferingTimer = null;
     let retryCount = 0;
-    const MAX_RETRIES = 12;
-
-    const stats = {
-      peers: 0,
-      p2pSegments: 0,
-      httpSegments: 0,
-      get p2pPercent() {
-        const total = this.p2pSegments + this.httpSegments;
-        return total === 0 ? 0 : ((this.p2pSegments / total) * 100).toFixed(1);
-      }
-    };
+    let isReconnecting = false;          // <-- proteção contra loop
+    const MAX_RETRIES = 8;
 
     function clearAllTimers() {
       clearTimeout(reconnectTimer);
@@ -103,7 +81,9 @@
 
     function destroyPlayer() {
       if (player) {
-        try { player.destroy(); } catch (e) {}
+        try {
+          player.destroy();
+        } catch (e) {}
         player = null;
       }
     }
@@ -111,6 +91,7 @@
     function showFatalError(message) {
       clearAllTimers();
       destroyPlayer();
+      isReconnecting = false;
       document.body.innerHTML = `
         <div style="color:#fff;text-align:center;padding:20px;font-family:sans-serif;position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#000;z-index:999;">
           <h2 style="color:#ff4444;margin-bottom:10px;">Erro na Transmissão</h2>
@@ -121,7 +102,7 @@
 
     function initP2P() {
       if (typeof p2pml === "undefined" || !p2pml.hlsjs) {
-        console.warn("⚠️ Biblioteca p2pml não encontrada. Rodando sem P2P.");
+        console.warn("⚠️ p2pml não encontrado. Rodando sem P2P.");
         return null;
       }
 
@@ -144,57 +125,40 @@
               ]
             },
             httpDownloadEnabled: true,
-            httpDownloadProbability: 0.07,
-            requiredSegmentsPriority: 1,
-            maxPeers: 70,
-            simultaneousP2PDownloads: 12,
-            simultaneousHttpDownloads: 2,
-            cachedSegmentsCount: 1200,
-            cachedSegmentExpiration: 12 * 60 * 1000
+            httpDownloadProbability: 0.08,
+            maxPeers: 50,
+            simultaneousP2PDownloads: 8,
+            simultaneousHttpDownloads: 3
           }
         });
 
-        engine.on("peer_connect", () => {
-          stats.peers++;
-          console.log(`✅ Peer conectado | Total peers: ${stats.peers}`);
-        });
-
-        engine.on("peer_close", () => {
-          stats.peers = Math.max(0, stats.peers - 1);
-        });
-
+        engine.on("peer_connect", () => console.log("✅ Peer conectado"));
+        engine.on("peer_close", () => {});
         engine.on("segment_loaded", (segment, peerId) => {
-          if (peerId) {
-            stats.p2pSegments++;
-          } else {
-            stats.httpSegments++;
-          }
-
-          if ((stats.p2pSegments + stats.httpSegments) % 25 === 0) {
-            console.log(`📊 P2P: ${stats.p2pPercent}% | Peers: ${stats.peers}`);
-          }
+          if (peerId) console.log("📦 Segmento via P2P");
         });
 
-        console.log("✅ P2P Engine iniciado com sucesso");
+        console.log("✅ P2P Engine iniciado");
         return engine;
       } catch (err) {
-        console.warn("❌ Falha ao iniciar P2P:", err);
+        console.warn("❌ Erro ao iniciar P2P:", err);
         return null;
       }
     }
 
     function createPlayer() {
+      if (isReconnecting) return; // proteção
+
       clearAllTimers();
+      destroyPlayer();
 
       if (retryCount >= MAX_RETRIES) {
-        showFatalError("Não foi possível conectar ao stream após várias tentativas.");
+        showFatalError("Não foi possível conectar após várias tentativas.");
         return;
       }
 
-      destroyPlayer();
-
       const activeSource = sources[currentSourceIndex];
-      console.log(`🔄 Tentando fonte ${currentSourceIndex + 1}/${sources.length}`);
+      console.log(`🔄 Tentando fonte ${currentSourceIndex + 1}/${sources.length}: ${activeSource}`);
 
       if (!p2pEngine) {
         p2pEngine = initP2P();
@@ -226,20 +190,17 @@
               loader: p2pEngine ? p2pEngine.createLoaderClass() : undefined,
               enableWorker: true,
               lowLatencyMode: true,
-              liveSyncDurationCount: 2,
-              liveMaxLatencyDurationCount: 5,
-              maxBufferLength: 15,
-              maxMaxBufferLength: 28,
-              backBufferLength: 12,
+              liveSyncDurationCount: 3,
+              liveMaxLatencyDurationCount: 8,
+              maxBufferLength: 20,
+              maxMaxBufferLength: 35,
+              backBufferLength: 20,
               startLevel: -1,
               autoStartLoad: true,
-              maxBufferHole: 0.5,
-              highBufferWatchdogPeriod: 1.5,
-              fragLoadingMaxRetry: 8,
-              fragLoadingRetryDelay: 700,
-              manifestLoadingMaxRetry: 6,
-              levelLoadingMaxRetry: 6,
-              abrEwmaDefaultEstimate: 700000
+              maxBufferHole: 0.8,
+              fragLoadingMaxRetry: 6,
+              manifestLoadingMaxRetry: 5,
+              levelLoadingMaxRetry: 5
             }
           },
           chromecast: {
@@ -251,48 +212,46 @@
           }
         });
 
+        // Timeout inicial
         initialLoadTimer = setTimeout(() => {
-          console.warn("⏰ Timeout de carregamento inicial");
-          retryCount++;
-          reconnect();
-        }, 10000);
+          console.warn("⏰ Timeout inicial");
+          scheduleReconnect();
+        }, 12000);
 
         player.on(Clappr.Events.PLAYER_PLAY, () => {
           clearAllTimers();
           retryCount = 0;
-          console.log("▶️ Player iniciado");
+          isReconnecting = false;
+          console.log("▶️ Player tocando");
         });
 
         player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
           clearTimeout(initialLoadTimer);
           bufferingTimer = setTimeout(() => {
-            console.warn("⏰ Buffering demorou demais");
-            retryCount++;
-            reconnect();
-          }, 14000);
+            console.warn("⏰ Buffering longo");
+            scheduleReconnect();
+          }, 18000);
         });
 
         player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
           clearTimeout(bufferingTimer);
         });
 
-        const handleError = () => {
-          retryCount++;
-          reconnect();
-        };
-
-        player.on(Clappr.Events.PLAYER_ERROR, handleError);
-        player.on(Clappr.Events.PLAYBACK_ERROR, handleError);
+        player.on(Clappr.Events.PLAYER_ERROR, () => scheduleReconnect());
+        player.on(Clappr.Events.PLAYBACK_ERROR, () => scheduleReconnect());
 
       } catch (e) {
-        console.error("❌ Erro ao criar player:", e);
-        retryCount++;
-        reconnect();
+        console.error("Erro ao criar player:", e);
+        scheduleReconnect();
       }
     }
 
-    function reconnect() {
+    function scheduleReconnect() {
+      if (isReconnecting) return;
+      isReconnecting = true;
+
       clearAllTimers();
+      retryCount++;
 
       if (retryCount >= MAX_RETRIES) {
         showFatalError("Tente recarregar a página.");
@@ -300,25 +259,28 @@
       }
 
       currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-      const delay = Math.min(1800 + (retryCount * 600), 6500);
+      const delay = Math.min(3000 + retryCount * 1000, 10000); // delay maior
 
       console.log(`🔄 Reconectando em ${delay}ms (tentativa ${retryCount})`);
-      reconnectTimer = setTimeout(createPlayer, delay);
+
+      reconnectTimer = setTimeout(() => {
+        isReconnecting = false;
+        createPlayer();
+      }, delay);
     }
 
+    // Eventos de rede
     window.addEventListener("online", () => {
       console.log("🌐 Internet voltou");
       retryCount = 0;
       currentSourceIndex = 0;
+      isReconnecting = false;
       createPlayer();
     });
 
-    window.addEventListener("beforeunload", () => {
-      clearAllTimers();
-      destroyPlayer();
-    });
-
+    // Inicia
     createPlayer();
+
   })();
   </script>
 </body>

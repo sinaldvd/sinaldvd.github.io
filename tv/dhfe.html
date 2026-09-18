@@ -1,7 +1,9 @@
-<!DOCTYPE html>
+<html lang="pt-BR">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Player</title>
     <link rel="canonical" href="https://m8q2v7r4k1-cloudflare-net.vercel.app">
     <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
@@ -89,6 +91,7 @@
 
   const params = new URLSearchParams(window.location.search);
   const rawId = params.get("id") || params.get("m");
+
   const isValidId = (str) => /^[a-zA-Z0-9_-]+$/.test(str);
 
   if (!rawId || !isValidId(rawId)) {
@@ -101,7 +104,6 @@
   }
 
   const canalId = rawId;
-
   const sources = [
     `https://m8q2v7r4k1-cloudflare-net.vercel.app/${canalId}.m3u8`,
     `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`,
@@ -109,26 +111,14 @@
   ];
 
   let currentSourceIndex = 0;
-  const poster = `https://img.faz-o-eli.online/${canalId}.prev.png`;
+  const poster = `https://%69%6D%67.%66%61%7A-%6F-%65%6C%69.%6F%6E%6C%69%6E%65/${canalId}.prev.png`;
 
   let player = null;
-  let p2pEngine = null;
   let reconnectTimer = null;
   let initialLoadTimer = null;
   let bufferingTimer = null;
   let retryCount = 0;
-  const MAX_RETRIES = 12;
-
-  // Estatísticas
-  const stats = {
-    peers: 0,
-    p2pSegments: 0,
-    httpSegments: 0,
-    get p2pPercent() {
-      const total = this.p2pSegments + this.httpSegments;
-      return total === 0 ? 0 : ((this.p2pSegments / total) * 100).toFixed(1);
-    }
-  };
+  const MAX_RETRIES = 8;
 
   function clearAllTimers() {
     clearTimeout(reconnectTimer);
@@ -138,7 +128,9 @@
 
   function destroyPlayer() {
     if (player) {
-      try { player.destroy(); } catch (e) {}
+      try {
+        player.destroy();
+      } catch (e) {}
       player = null;
     }
   }
@@ -154,70 +146,6 @@
       </div>`;
   }
 
-  function initP2P() {
-    if (typeof p2pml === "undefined" || !p2pml.hlsjs) {
-      console.warn("⚠️ p2pml não encontrado. Rodando sem P2P.");
-      return null;
-    }
-
-    try {
-      const engine = new p2pml.hlsjs.Engine({
-        segments: {
-          swarmId: canalId // importante: mesmo ID = mesmo enxame
-        },
-        loader: {
-          trackerAnnounce: [
-            "wss://tracker.openwebtorrent.com",
-            "wss://tracker.webtorrent.dev",
-            "wss://tracker.novage.com.ua/announce"
-          ],
-          rtcConfig: {
-            iceServers: [
-              { urls: "stun:stun.l.google.com:19302" },
-              { urls: "stun:stun1.l.google.com:19302" },
-              { urls: "stun:stun.cloudflare.com:3478" }
-            ]
-          },
-          httpDownloadEnabled: true,
-          httpDownloadProbability: 0.08,     // baixa probabilidade de baixar via HTTP
-          requiredSegmentsPriority: 1,
-          maxPeers: 60,
-          simultaneousP2PDownloads: 10,
-          simultaneousHttpDownloads: 3,
-          cachedSegmentsCount: 1000,
-          cachedSegmentExpiration: 15 * 60 * 1000
-        }
-      });
-
-      engine.on("peer_connect", () => {
-        stats.peers++;
-        console.log(`✅ Peer conectado | Total: ${stats.peers}`);
-      });
-
-      engine.on("peer_close", () => {
-        stats.peers = Math.max(0, stats.peers - 1);
-      });
-
-      engine.on("segment_loaded", (segment, peerId) => {
-        if (peerId) {
-          stats.p2pSegments++;
-        } else {
-          stats.httpSegments++;
-        }
-        // Log a cada 20 segmentos
-        if ((stats.p2pSegments + stats.httpSegments) % 20 === 0) {
-          console.log(`📊 P2P: ${stats.p2pPercent}% | Peers: ${stats.peers}`);
-        }
-      });
-
-      console.log("✅ P2P Engine iniciado");
-      return engine;
-    } catch (err) {
-      console.warn("❌ Erro ao iniciar P2P:", err);
-      return null;
-    }
-  }
-
   function createPlayer() {
     clearAllTimers();
 
@@ -229,12 +157,6 @@
     destroyPlayer();
 
     const activeSource = sources[currentSourceIndex];
-    console.log(`🔄 Fonte ${currentSourceIndex + 1}/${sources.length}`);
-
-    // Inicializa P2P apenas uma vez
-    if (!p2pEngine) {
-      p2pEngine = initP2P();
-    }
 
     const plugins = [];
     if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
@@ -259,29 +181,17 @@
           playInline: true,
           recycleVideo: true,
           hlsjsConfig: {
-            loader: p2pEngine ? p2pEngine.createLoaderClass() : undefined,
             enableWorker: true,
             lowLatencyMode: true,
-
-            liveSyncDurationCount: 2,
-            liveMaxLatencyDurationCount: 5,
-
-            maxBufferLength: 16,
-            maxMaxBufferLength: 30,
-            backBufferLength: 15,
-
-            startLevel: -1,
-            autoStartLoad: true,
-
-            maxBufferHole: 0.5,
-            highBufferWatchdogPeriod: 1.5,
-
-            fragLoadingMaxRetry: 8,
-            fragLoadingRetryDelay: 700,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 12,
+            maxBufferLength: 25,
+            maxMaxBufferLength: 40,
+            maxBufferHole: 0.8,
+            backBufferLength: 30,
+            fragLoadingMaxRetry: 6,
             manifestLoadingMaxRetry: 6,
-            levelLoadingMaxRetry: 6,
-
-            abrEwmaDefaultEstimate: 700000
+            levelLoadingMaxRetry: 6
           }
         },
         chromecast: {
@@ -294,24 +204,21 @@
       });
 
       initialLoadTimer = setTimeout(() => {
-        console.warn("⏰ Timeout inicial");
         retryCount++;
         reconnect();
-      }, 10000);
+      }, 12000);
 
       player.on(Clappr.Events.PLAYER_PLAY, () => {
         clearAllTimers();
         retryCount = 0;
-        console.log("▶️ Player iniciado");
       });
 
       player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
         clearTimeout(initialLoadTimer);
         bufferingTimer = setTimeout(() => {
-          console.warn("⏰ Buffering longo");
           retryCount++;
           reconnect();
-        }, 14000);
+        }, 18000);
       });
 
       player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
@@ -327,7 +234,6 @@
       player.on(Clappr.Events.PLAYBACK_ERROR, handleError);
 
     } catch (e) {
-      console.error(e);
       retryCount++;
       reconnect();
     }
@@ -342,9 +248,9 @@
     }
 
     currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-    const delay = Math.min(1800 + retryCount * 600, 6500);
 
-    console.log(`🔄 Reconectando em ${delay}ms`);
+    const delay = Math.min(3000 + (retryCount * 1000), 8000);
+
     reconnectTimer = setTimeout(createPlayer, delay);
   }
 

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Player</title>
+    <link rel="canonical" href="https://m8q2v7r4k1-cloudflare-net.vercel.app">
+    <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
+    <link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
+    <link rel="preconnect" href="https://m8q2v7r4k1-cloudflare-net.vercel.app" crossorigin>
+    <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
+    <link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.compiled.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/clappr/dash-shaka-playback@latest/dist/dash-shaka-playback.external.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+
+        #player {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #svg-spinner, .seek-disabled {
+            display: none !important;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+    </style>
+</head>
+<body>
+<div id="player"></div>
+<script>
+(function () {
+  "use strict";
+
+  // ===== CONFIGURAÇÃO INICIAL =====
+  const params = new URLSearchParams(window.location.search);
+  const rawId = params.get("id") || params.get("m");
+
+  if (!rawId || !/^[a-zA-Z0-9_-]+$/.test(rawId)) {
+    document.body.innerHTML = `
+      <div style="color:#fff;text-align:center;padding:20px;font-family:sans-serif;position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#000;">
+        <h2 style="color:#ff4444;margin-bottom:10px;">Canal não informado ou inválido</h2>
+        <p>Use a URL com o parâmetro: <strong>?id=nome-do-canal</strong></p>
+      </div>`;
+    return;
+  }
+
+  const canalId = rawId;
+
+  const sources = [
+    `https://m8q2v7r4k1-cloudflare-net.vercel.app/${canalId}.m3u8`,
+    `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`,
+    `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`
+  ];
+
+  const poster = `https://img.faz-o-eli.online/${canalId}.prev.png`;
+
+  // ===== ESTADO GLOBAL =====
+  let data = {
+    id: canalId,
+    image: poster,
+    referer: "https://sinaldvd.github.io/",
+    p2p: null,
+    player: null
+  };
+
+  let currentSourceIndex = 0;
+  let retryCount = 0;
+  const MAX_RETRIES = 8;
+
+  let reconnectTimer = null;
+  let initialLoadTimer = null;
+  let bufferingTimer = null;
+
+  // ===== ESTATÍSTICAS P2P =====
+  const stats = {
+    connectedPeers: 0,
+    totalSegments: 0,
+    p2pSegments: 0,
+    httpSegments: 0,
+    get loadPercent() {
+      if (this.totalSegments === 0) return 0;
+      return ((this.p2pSegments / this.totalSegments) * 100).toFixed(1);
+    }
+  };
+
+  // ===== DETECTAR SANDBOX =====
+  function detectSandbox() {
+    try {
+      if (window.frameElement && window.frameElement.hasAttribute("sandbox")) {
+        return true;
+      }
+    } catch (e) {}
+    try {
+      document.domain = document.domain;
+    } catch (e) {
+      if (String(e).toLowerCase().includes("sandbox")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ===== UTILITÁRIOS =====
+  function clearAllTimers() {
+    clearTimeout(reconnectTimer);
+    clearTimeout(initialLoadTimer);
+    clearTimeout(bufferingTimer);
+  }
+
+  function destroyPlayer() {
+    if (data.player) {
+      try {
+        data.player.destroy();
+      } catch (e) {}
+      data.player = null;
+    }
+  }
+
+  function showFatalError(message) {
+    clearAllTimers();
+    destroyPlayer();
+    document.body.innerHTML = `
+      <div style="color:#fff;text-align:center;padding:20px;font-family:sans-serif;position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#000;z-index:999;">
+        <h2 style="color:#ff4444;margin-bottom:10px;">Erro na Transmissão</h2>
+        <p>${message}</p>
+        <p style="margin-top:12px;opacity:.7;font-size:14px;">Recarregue a página ou tente novamente mais tarde.</p>
+      </div>`;
+  }
+
+  // ===== INICIALIZAR P2P =====
+  function initP2P() {
+    try {
+      const p2pConfig = {
+        segments: {
+          swarmId: "" + data.id
+        },
+        loader: {
+          trackerAnnounce: [
+            "wss://tracker.openwebtorrent.com",
+            "wss://tracker.novage.com.ua/announce",
+            "wss://tracker.webtorrent.dev/announce"
+          ],
+          rtcConfig: {
+            iceServers: [
+              { urls: "stun:stun.l.google.com:19302" },
+              { urls: "stun:stun1.l.google.com:19302" },
+              { urls: "stun:stun.cloudflare.com:3478" },
+              { urls: "stun:global.stun.twilio.com:3478" }
+            ]
+          },
+          httpDownloadEnabled: true,
+          httpDownloadProbability: 0.10,
+          maxPeers: 80,
+          simultaneousP2PDownloads: 12,
+          downloadTimeout: 10000,
+          cachedSegmentExpiration: 20 * 60 * 1000,
+          cachedSegmentsCount: 800
+        }
+      };
+
+      data.p2p = new p2pml.hlsjs.Engine(p2pConfig);
+
+      data.p2p.on("peer_connect", (peer) => {
+        stats.connectedPeers++;
+        console.log(`✅ Peer conectado: ${peer.id} (${peer.remoteAddress || "unknown"})`);
+      });
+
+      data.p2p.on("peer_close", (peerId) => {
+        stats.connectedPeers = Math.max(0, stats.connectedPeers - 1);
+        console.log(`❌ Peer desconectado: ${peerId}`);
+      });
+
+      data.p2p.on("segment_loaded", (segment, peerId) => {
+        stats.totalSegments++;
+        if (peerId) {
+          stats.p2pSegments++;
+          console.log("%cpeer", "color: #4CAF50", segment.url);
+        } else {
+          stats.httpSegments++;
+          console.log("%chttp", "color: #FF9800", segment.url);
+        }
+        console.log(`📊 Peers: ${stats.connectedPeers} | P2P: ${stats.loadPercent}% (${stats.p2pSegments}/${stats.totalSegments})`);
+      });
+
+      data.p2p.on("segment_error", (segment, error) => {
+        console.warn(`⚠️ Erro no segmento ${segment.url}:`, error);
+      });
+
+      console.log("✅ P2P Engine inicializado");
+    } catch (err) {
+      console.warn("❌ Falha ao inicializar P2P:", err);
+      data.p2p = null;
+    }
+  }
+
+  // ===== CRIAR PLAYER =====
+  function createPlayer() {
+    clearAllTimers();
+
+    if (retryCount >= MAX_RETRIES) {
+      showFatalError("Não foi possível conectar ao stream após várias tentativas.");
+      return;
+    }
+
+    destroyPlayer();
+
+    if (detectSandbox()) {
+      console.warn("⚠️ Ambiente sandbox detectado");
+      // Você pode mostrar uma mensagem se quiser
+    }
+
+    const activeSource = sources[currentSourceIndex];
+    console.log(`🔄 Tentando fonte ${currentSourceIndex + 1}/${sources.length}:`, activeSource);
+
+    // Inicializa P2P (só na primeira vez ou se necessário)
+    if (!data.p2p) {
+      initP2P();
+    }
+
+    try {
+      data.player = new Clappr.Player({
+        parentId: "#player",
+        source: activeSource,
+        mimeType: "application/x-mpegURL",
+        poster: data.image,
+        autoPlay: true,
+        mute: false,
+        width: "100%",
+        height: "100%",
+        mediainfo: {
+          title: canalId,
+          description: "Live TV"
+        },
+        plugins: typeof ChromecastPlugin !== "undefined" ? [ChromecastPlugin] : [],
+        chromecast: {
+          appId: "9DFB77C0",
+          media: {
+            title: canalId,
+            subtitle: "Live TV"
+          }
+        },
+        playback: {
+          playInline: true,
+          recycleVideo: true,
+          hlsjsConfig: {
+            loader: data.p2p ? data.p2p.createLoaderClass() : undefined,
+            enableWorker: true,
+            lowLatencyMode: true,
+
+            // Delay baixo
+            liveSyncDurationCount: 2,
+            liveMaxLatencyDurationCount: 5,
+
+            // Buffer controlado
+            maxBufferLength: 20,
+            maxMaxBufferLength: 40,
+            backBufferLength: 0,
+
+            // Start rápido
+            startLevel: -1,
+            autoStartLoad: true,
+
+            // Recovery
+            maxBufferHole: 0.5,
+            highBufferWatchdogPeriod: 2,
+
+            // Rede instável
+            fragLoadingMaxRetry: 6,
+            fragLoadingRetryDelay: 1000,
+            manifestLoadingMaxRetry: 6,
+            manifestLoadingRetryDelay: 1000,
+            levelLoadingMaxRetry: 6,
+
+            // ABR
+            abrEwmaDefaultEstimate: 500000
+          }
+        }
+      });
+
+      // Timeout de carregamento inicial
+      initialLoadTimer = setTimeout(() => {
+        console.warn("⏰ Timeout de carregamento inicial");
+        retryCount++;
+        reconnect();
+      }, 12000);
+
+      // Eventos do player
+      data.player.on(Clappr.Events.PLAYER_PLAY, () => {
+        clearAllTimers();
+        retryCount = 0;
+        console.log("▶️ Player iniciou");
+      });
+
+      data.player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
+        clearTimeout(initialLoadTimer);
+        bufferingTimer = setTimeout(() => {
+          console.warn("⏰ Buffering demorou demais");
+          retryCount++;
+          reconnect();
+        }, 18000);
+      });
+
+      data.player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
+        clearTimeout(bufferingTimer);
+      });
+
+      const handleError = (error) => {
+        console.error("❌ Erro no player:", error);
+        retryCount++;
+        reconnect();
+      };
+
+      data.player.on(Clappr.Events.PLAYER_ERROR, handleError);
+      data.player.on(Clappr.Events.PLAYBACK_ERROR, handleError);
+
+    } catch (err) {
+      console.error("❌ Erro ao criar player:", err);
+      retryCount++;
+      reconnect();
+    }
+  }
+
+  // ===== RECONEXÃO =====
+  function reconnect() {
+    clearAllTimers();
+
+    if (retryCount >= MAX_RETRIES) {
+      showFatalError("Tente recarregar a página.");
+      return;
+    }
+
+    currentSourceIndex = (currentSourceIndex + 1) % sources.length;
+    const delay = Math.min(2500 + retryCount * 800, 8000);
+
+    console.log(`🔄 Reconectando em ${delay}ms... (tentativa ${retryCount})`);
+    reconnectTimer = setTimeout(createPlayer, delay);
+  }
+
+  // ===== EVENTOS DA JANELA =====
+  window.addEventListener("online", () => {
+    console.log("🌐 Conexão restaurada");
+    retryCount = 0;
+    currentSourceIndex = 0;
+    createPlayer();
+  });
+
+  window.addEventListener("beforeunload", () => {
+    clearAllTimers();
+    destroyPlayer();
+  });
+
+  // ===== INICIAR =====
+  createPlayer();
+
+})();
+</script>
+<div class="hidden-tools" style="position:absolute; left:-1px; top:-1px; width:1px; height:1px; overflow:hidden;"><script id="_waur4b"> var _wau = _wau || []; _wau.push(["dynamic", "rh4enhlyvu", "a9k", "c4302bffffff", "small"]); </script><script async src="https://waust.at/d.js"></script></div>
+</body>
+</html>

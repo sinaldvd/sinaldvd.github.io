@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Player</title>
+  <title>cPlayer</title>
 
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 
   <!-- Clappr + Plugins -->
   <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
@@ -14,10 +13,8 @@
   <script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
 
-  <!-- P2P Media Loader -->
+  <!-- P2P Media Loader (versão atual) -->
   <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/dist/p2p-media-loader-hlsjs.iife.min.js"></script>
-
-  <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 
   <style>
     html, body {
@@ -70,7 +67,7 @@
     let initialLoadTimer = null;
     let bufferingTimer = null;
     let retryCount = 0;
-    let isReconnecting = false;          // <-- proteção contra loop
+    let isReconnecting = false;
     const MAX_RETRIES = 8;
 
     function clearAllTimers() {
@@ -81,9 +78,7 @@
 
     function destroyPlayer() {
       if (player) {
-        try {
-          player.destroy();
-        } catch (e) {}
+        try { player.destroy(); } catch (e) {}
         player = null;
       }
     }
@@ -101,18 +96,17 @@
     }
 
     function initP2P() {
-      if (typeof p2pml === "undefined" || !p2pml.hlsjs) {
-        console.warn("⚠️ p2pml não encontrado. Rodando sem P2P.");
+      // Nova API da biblioteca
+      if (typeof p2pml === "undefined" || !p2pml.hlsjs || !p2pml.hlsjs.HlsJsP2PEngine) {
+        console.warn("⚠️ p2pml.HlsJsP2PEngine não encontrado. Rodando sem P2P.");
         return null;
       }
 
       try {
-        const engine = new p2pml.hlsjs.Engine({
-          segments: {
-            swarmId: canalId
-          },
-          loader: {
-            trackerAnnounce: [
+        const engine = new p2pml.hlsjs.HlsJsP2PEngine({
+          core: {
+            swarmId: canalId,
+            announceTrackers: [
               "wss://tracker.openwebtorrent.com",
               "wss://tracker.webtorrent.dev",
               "wss://tracker.novage.com.ua/announce"
@@ -123,22 +117,11 @@
                 { urls: "stun:stun1.l.google.com:19302" },
                 { urls: "stun:stun.cloudflare.com:3478" }
               ]
-            },
-            httpDownloadEnabled: true,
-            httpDownloadProbability: 0.08,
-            maxPeers: 50,
-            simultaneousP2PDownloads: 8,
-            simultaneousHttpDownloads: 3
+            }
           }
         });
 
-        engine.on("peer_connect", () => console.log("✅ Peer conectado"));
-        engine.on("peer_close", () => {});
-        engine.on("segment_loaded", (segment, peerId) => {
-          if (peerId) console.log("📦 Segmento via P2P");
-        });
-
-        console.log("✅ P2P Engine iniciado");
+        console.log("✅ P2P Engine (nova API) iniciado");
         return engine;
       } catch (err) {
         console.warn("❌ Erro ao iniciar P2P:", err);
@@ -147,7 +130,7 @@
     }
 
     function createPlayer() {
-      if (isReconnecting) return; // proteção
+      if (isReconnecting) return;
 
       clearAllTimers();
       destroyPlayer();
@@ -158,7 +141,7 @@
       }
 
       const activeSource = sources[currentSourceIndex];
-      console.log(`🔄 Tentando fonte ${currentSourceIndex + 1}/${sources.length}: ${activeSource}`);
+      console.log(`🔄 Tentando fonte ${currentSourceIndex + 1}/${sources.length}`);
 
       if (!p2pEngine) {
         p2pEngine = initP2P();
@@ -168,6 +151,28 @@
       if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
       if (typeof ClapprPip !== "undefined") plugins.push(ClapprPip);
       if (typeof ChromecastPlugin !== "undefined") plugins.push(ChromecastPlugin);
+
+      // Configuração do loader P2P (nova API)
+      let hlsjsConfig = {
+        enableWorker: true,
+        lowLatencyMode: true,
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 8,
+        maxBufferLength: 20,
+        maxMaxBufferLength: 35,
+        backBufferLength: 20,
+        startLevel: -1,
+        autoStartLoad: true,
+        maxBufferHole: 0.8,
+        fragLoadingMaxRetry: 6,
+        manifestLoadingMaxRetry: 5,
+        levelLoadingMaxRetry: 5
+      };
+
+      // Se o P2P iniciou, tenta usar o loader dele
+      if (p2pEngine && typeof p2pEngine.createLoaderClass === "function") {
+        hlsjsConfig.loader = p2pEngine.createLoaderClass();
+      }
 
       try {
         player = new Clappr.Player({
@@ -186,22 +191,7 @@
           playback: {
             playInline: true,
             recycleVideo: true,
-            hlsjsConfig: {
-              loader: p2pEngine ? p2pEngine.createLoaderClass() : undefined,
-              enableWorker: true,
-              lowLatencyMode: true,
-              liveSyncDurationCount: 3,
-              liveMaxLatencyDurationCount: 8,
-              maxBufferLength: 20,
-              maxMaxBufferLength: 35,
-              backBufferLength: 20,
-              startLevel: -1,
-              autoStartLoad: true,
-              maxBufferHole: 0.8,
-              fragLoadingMaxRetry: 6,
-              manifestLoadingMaxRetry: 5,
-              levelLoadingMaxRetry: 5
-            }
+            hlsjsConfig: hlsjsConfig
           },
           chromecast: {
             appId: "9DFB77C0",
@@ -212,7 +202,6 @@
           }
         });
 
-        // Timeout inicial
         initialLoadTimer = setTimeout(() => {
           console.warn("⏰ Timeout inicial");
           scheduleReconnect();
@@ -259,7 +248,7 @@
       }
 
       currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-      const delay = Math.min(3000 + retryCount * 1000, 10000); // delay maior
+      const delay = Math.min(3000 + retryCount * 1000, 10000);
 
       console.log(`🔄 Reconectando em ${delay}ms (tentativa ${retryCount})`);
 
@@ -269,7 +258,6 @@
       }, delay);
     }
 
-    // Eventos de rede
     window.addEventListener("online", () => {
       console.log("🌐 Internet voltou");
       retryCount = 0;
@@ -278,7 +266,6 @@
       createPlayer();
     });
 
-    // Inicia
     createPlayer();
 
   })();

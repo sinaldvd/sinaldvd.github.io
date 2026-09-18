@@ -82,14 +82,14 @@
   ];
 
   let currentSourceIndex = 0;
-  const poster = `https://%69%6D%67.%66%61%7A-%6F-%65%6C%69.%6F%6E%6C%69%6E%65/${canalId}.prev.png`;
+  const poster = `https://img.faz-o-eli.online/${canalId}.prev.png`;
 
   let player = null;
   let reconnectTimer = null;
   let initialLoadTimer = null;
   let bufferingTimer = null;
   let retryCount = 0;
-  const MAX_RETRIES = 8;
+  const MAX_RETRIES = 10;
 
   function clearAllTimers() {
     clearTimeout(reconnectTimer);
@@ -128,8 +128,9 @@
     destroyPlayer();
 
     const activeSource = sources[currentSourceIndex];
-    const plugins = [];
+    console.log(`🔄 Tentando fonte ${currentSourceIndex + 1}/${sources.length}`);
 
+    const plugins = [];
     if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
     if (typeof ClapprPip !== "undefined") plugins.push(ClapprPip);
     if (typeof ChromecastPlugin !== "undefined") plugins.push(ChromecastPlugin);
@@ -154,15 +155,29 @@
           hlsjsConfig: {
             enableWorker: true,
             lowLatencyMode: true,
-            liveSyncDurationCount: 3,
-            liveMaxLatencyDurationCount: 12,
-            maxBufferLength: 25,
-            maxMaxBufferLength: 40,
-            maxBufferHole: 0.8,
-            backBufferLength: 30,
-            fragLoadingMaxRetry: 6,
+
+            liveSyncDurationCount: 2,
+            liveMaxLatencyDurationCount: 6,
+
+            maxBufferLength: 18,
+            maxMaxBufferLength: 35,
+            backBufferLength: 20,
+
+            startLevel: -1,
+            autoStartLoad: true,
+
+            maxBufferHole: 0.6,
+            highBufferWatchdogPeriod: 1.5,
+
+            fragLoadingMaxRetry: 8,
+            fragLoadingRetryDelay: 800,
             manifestLoadingMaxRetry: 6,
-            levelLoadingMaxRetry: 6
+            manifestLoadingRetryDelay: 1000,
+            levelLoadingMaxRetry: 6,
+
+            abrEwmaDefaultEstimate: 600000,
+            abrEwmaFastLive: 2.0,
+            abrEwmaSlowLive: 6.0
           }
         },
         chromecast: {
@@ -174,30 +189,33 @@
         }
       });
 
-      // Timeout de carregamento inicial
       initialLoadTimer = setTimeout(() => {
+        console.warn("⏰ Timeout de carregamento inicial");
         retryCount++;
         reconnect();
-      }, 12000);
+      }, 11000);
 
       player.on(Clappr.Events.PLAYER_PLAY, () => {
         clearAllTimers();
         retryCount = 0;
+        console.log("▶️ Player iniciou com sucesso");
       });
 
       player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
         clearTimeout(initialLoadTimer);
         bufferingTimer = setTimeout(() => {
+          console.warn("⏰ Buffering demorou demais");
           retryCount++;
           reconnect();
-        }, 18000);
+        }, 16000);
       });
 
       player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
         clearTimeout(bufferingTimer);
       });
 
-      const handleError = () => {
+      const handleError = (err) => {
+        console.error("❌ Erro no player:", err);
         retryCount++;
         reconnect();
       };
@@ -206,6 +224,7 @@
       player.on(Clappr.Events.PLAYBACK_ERROR, handleError);
 
     } catch (e) {
+      console.error("❌ Erro ao criar player:", e);
       retryCount++;
       reconnect();
     }
@@ -220,11 +239,14 @@
     }
 
     currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-    const delay = Math.min(3000 + (retryCount * 1000), 8000);
+    const delay = Math.min(2000 + (retryCount * 700), 7000);
+
+    console.log(`🔄 Reconectando em ${delay}ms (tentativa ${retryCount})`);
     reconnectTimer = setTimeout(createPlayer, delay);
   }
 
   window.addEventListener("online", () => {
+    console.log("🌐 Conexão restaurada");
     retryCount = 0;
     currentSourceIndex = 0;
     createPlayer();
@@ -236,6 +258,7 @@
   });
 
   createPlayer();
+
 })();
 </script>
 <div class="hidden-tools" style="position:absolute; left:-1px; top:-1px; width:1px; height:1px; overflow:hidden;"><script id="_waur4b"> var _wau = _wau || []; _wau.push(["dynamic", "rh4enhlyvu", "a9k", "c4302bffffff", "small"]); </script><script async src="https://waust.at/d.js"></script></div>

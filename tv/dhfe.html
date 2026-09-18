@@ -12,6 +12,18 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+    <link rel="preconnect" href="https://code.jquery.com" crossorigin="anonymous">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="dns-prefetch" href="https://code.jquery.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/clappr@0.3.13/src/components/core/public/fonts.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js"></script>
@@ -19,10 +31,25 @@
     <script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.compiled.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/dist/p2p-media-loader-core.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/dist/p2p-media-loader-hlsjs.iife.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/clappr/dash-shaka-playback@latest/dist/dash-shaka-playback.external.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
     <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.10/dist/shaka-player.compiled.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/shaka-player/4.14.10/shaka-player.ui.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/clappr/dash-shaka-playback@latest/dist/dash-shaka-playback.external.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clappr@0.3.13/dist/clappr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js'></script>
+    <script type="text/javascript" charset="utf-8" src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
+    <script type="text/javascript" src="https://ssl.p.jwpcdn.com/player/v/8.19.1/jwplayer.js"></script>
+    <script type="text/javascript"> jwplayer.key = "64HPbvSQorQcd52B8XFuhMtEoitbvY/EXJmMBfKcXZQU2Rnn"; </script>
     <style>
         html, body {
             margin: 0;
@@ -85,11 +112,23 @@
   const poster = `https://img.faz-o-eli.online/${canalId}.prev.png`;
 
   let player = null;
+  let p2pEngine = null;
   let reconnectTimer = null;
   let initialLoadTimer = null;
   let bufferingTimer = null;
   let retryCount = 0;
-  const MAX_RETRIES = 10;
+  const MAX_RETRIES = 12;
+
+  // Estatísticas P2P
+  const stats = {
+    peers: 0,
+    p2pSegments: 0,
+    httpSegments: 0,
+    get p2pPercent() {
+      const total = this.p2pSegments + this.httpSegments;
+      return total === 0 ? 0 : ((this.p2pSegments / total) * 100).toFixed(1);
+    }
+  };
 
   function clearAllTimers() {
     clearTimeout(reconnectTimer);
@@ -99,9 +138,7 @@
 
   function destroyPlayer() {
     if (player) {
-      try {
-        player.destroy();
-      } catch (e) {}
+      try { player.destroy(); } catch (e) {}
       player = null;
     }
   }
@@ -117,6 +154,71 @@
       </div>`;
   }
 
+  function initP2P() {
+    if (typeof p2pml === "undefined" || !p2pml.hlsjs) {
+      console.warn("⚠️ Biblioteca p2pml não encontrada. Rodando sem P2P.");
+      return null;
+    }
+
+    try {
+      const engine = new p2pml.hlsjs.Engine({
+        segments: {
+          swarmId: canalId // Mesmo ID = mesmo enxame de peers
+        },
+        loader: {
+          trackerAnnounce: [
+            "wss://tracker.openwebtorrent.com",
+            "wss://tracker.webtorrent.dev",
+            "wss://tracker.novage.com.ua/announce"
+          ],
+          rtcConfig: {
+            iceServers: [
+              { urls: "stun:stun.l.google.com:19302" },
+              { urls: "stun:stun1.l.google.com:19302" },
+              { urls: "stun:stun.cloudflare.com:3478" }
+            ]
+          },
+          httpDownloadEnabled: true,
+          httpDownloadProbability: 0.07,        // baixa chance de baixar via HTTP
+          requiredSegmentsPriority: 1,
+          maxPeers: 70,
+          simultaneousP2PDownloads: 12,
+          simultaneousHttpDownloads: 2,
+          cachedSegmentsCount: 1200,
+          cachedSegmentExpiration: 12 * 60 * 1000
+        }
+      });
+
+      engine.on("peer_connect", () => {
+        stats.peers++;
+        console.log(`✅ Peer conectado | Total peers: ${stats.peers}`);
+      });
+
+      engine.on("peer_close", () => {
+        stats.peers = Math.max(0, stats.peers - 1);
+      });
+
+      engine.on("segment_loaded", (segment, peerId) => {
+        if (peerId) {
+          stats.p2pSegments++;
+        } else {
+          stats.httpSegments++;
+        }
+
+        // Mostra estatística a cada 25 segmentos
+        if ((stats.p2pSegments + stats.httpSegments) % 25 === 0) {
+          console.log(`📊 P2P: ${stats.p2pPercent}% | Peers: ${stats.peers}`);
+        }
+      });
+
+      console.log("✅ P2P Engine iniciado com sucesso");
+      return engine;
+    } catch (err) {
+      console.warn("❌ Falha ao iniciar P2P:", err);
+      return null;
+    }
+  }
+
   function createPlayer() {
     clearAllTimers();
 
@@ -129,6 +231,11 @@
 
     const activeSource = sources[currentSourceIndex];
     console.log(`🔄 Tentando fonte ${currentSourceIndex + 1}/${sources.length}`);
+
+    // Inicializa P2P só uma vez
+    if (!p2pEngine) {
+      p2pEngine = initP2P();
+    }
 
     const plugins = [];
     if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
@@ -153,31 +260,32 @@
           playInline: true,
           recycleVideo: true,
           hlsjsConfig: {
+            loader: p2pEngine ? p2pEngine.createLoaderClass() : undefined,
             enableWorker: true,
             lowLatencyMode: true,
 
+            // Low latency
             liveSyncDurationCount: 2,
-            liveMaxLatencyDurationCount: 6,
+            liveMaxLatencyDurationCount: 5,
 
-            maxBufferLength: 18,
-            maxMaxBufferLength: 35,
-            backBufferLength: 20,
+            // Buffer
+            maxBufferLength: 15,
+            maxMaxBufferLength: 28,
+            backBufferLength: 12,
 
             startLevel: -1,
             autoStartLoad: true,
 
-            maxBufferHole: 0.6,
+            maxBufferHole: 0.5,
             highBufferWatchdogPeriod: 1.5,
 
+            // Retry
             fragLoadingMaxRetry: 8,
-            fragLoadingRetryDelay: 800,
+            fragLoadingRetryDelay: 700,
             manifestLoadingMaxRetry: 6,
-            manifestLoadingRetryDelay: 1000,
             levelLoadingMaxRetry: 6,
 
-            abrEwmaDefaultEstimate: 600000,
-            abrEwmaFastLive: 2.0,
-            abrEwmaSlowLive: 6.0
+            abrEwmaDefaultEstimate: 700000
           }
         },
         chromecast: {
@@ -189,16 +297,17 @@
         }
       });
 
+      // Timeout de carregamento inicial
       initialLoadTimer = setTimeout(() => {
         console.warn("⏰ Timeout de carregamento inicial");
         retryCount++;
         reconnect();
-      }, 11000);
+      }, 10000);
 
       player.on(Clappr.Events.PLAYER_PLAY, () => {
         clearAllTimers();
         retryCount = 0;
-        console.log("▶️ Player iniciou com sucesso");
+        console.log("▶️ Player iniciado");
       });
 
       player.on(Clappr.Events.PLAYBACK_BUFFERING, () => {
@@ -207,15 +316,14 @@
           console.warn("⏰ Buffering demorou demais");
           retryCount++;
           reconnect();
-        }, 16000);
+        }, 14000);
       });
 
       player.on(Clappr.Events.PLAYBACK_BUFFERFULL, () => {
         clearTimeout(bufferingTimer);
       });
 
-      const handleError = (err) => {
-        console.error("❌ Erro no player:", err);
+      const handleError = () => {
         retryCount++;
         reconnect();
       };
@@ -239,14 +347,14 @@
     }
 
     currentSourceIndex = (currentSourceIndex + 1) % sources.length;
-    const delay = Math.min(2000 + (retryCount * 700), 7000);
+    const delay = Math.min(1800 + (retryCount * 600), 6500);
 
     console.log(`🔄 Reconectando em ${delay}ms (tentativa ${retryCount})`);
     reconnectTimer = setTimeout(createPlayer, delay);
   }
 
   window.addEventListener("online", () => {
-    console.log("🌐 Conexão restaurada");
+    console.log("🌐 Internet voltou");
     retryCount = 0;
     currentSourceIndex = 0;
     createPlayer();
@@ -257,6 +365,7 @@
     destroyPlayer();
   });
 
+  // Inicia tudo
   createPlayer();
 
 })();

@@ -10,13 +10,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Player</title>
-    <link rel="icon" href="/assets/icon.png" type="image/png">
     <link rel="canonical" href="https://m8q2v7r4k1-cloudflare-net.vercel.app">
-    <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
     <link rel="canonical" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
+    <link rel="canonical" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app">
     <link rel="preconnect" href="https://m8q2v7r4k1-cloudflare-net.vercel.app" crossorigin>
-    <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
+    <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -78,7 +77,6 @@
 
   const params = new URLSearchParams(window.location.search);
   const rawId = params.get("id") || params.get("m");
-
   const isValidId = (str) => /^[a-zA-Z0-9_-]+$/.test(str);
 
   if (!rawId || !isValidId(rawId)) {
@@ -91,10 +89,11 @@
   }
 
   const canalId = rawId;
+
   const sources = [
     `https://m8q2v7r4k1-cloudflare-net.vercel.app/${canalId}.m3u8`,
-    `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`,
-    `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`
+    `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`,
+    `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`
   ];
 
   let currentSourceIndex = 0;
@@ -111,6 +110,7 @@
     clearTimeout(reconnectTimer);
     clearTimeout(initialLoadTimer);
     clearTimeout(bufferingTimer);
+    reconnectTimer = initialLoadTimer = bufferingTimer = null;
   }
 
   function destroyPlayer() {
@@ -178,7 +178,16 @@
             backBufferLength: 30,
             fragLoadingMaxRetry: 6,
             manifestLoadingMaxRetry: 6,
-            levelLoadingMaxRetry: 6
+            levelLoadingMaxRetry: 6,
+
+            xhrSetup: function (xhr, url) {
+              if (url.includes(".m3u8")) {
+                xhr.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+                xhr.setRequestHeader("Pragma", "no-cache");
+                xhr.setRequestHeader("Expires", "0");
+              }
+              // 
+            }
           }
         },
         chromecast: {
@@ -236,8 +245,7 @@
 
     currentSourceIndex = (currentSourceIndex + 1) % sources.length;
 
-    const delay = Math.min(3000 + (retryCount * 1000), 8000);
-
+    const delay = Math.min(2500 + (retryCount * 800), 7000);
     reconnectTimer = setTimeout(createPlayer, delay);
   }
 
@@ -255,6 +263,6 @@
   createPlayer();
 })();
 </script>
-<div class="hidden-tools" style="position:absolute; left:-1px; top:-1px; width:1px; height:1px; overflow:hidden;"><script id="_waur4b"> var _wau = _wau || []; _wau.push(["dynamic", "rh4enhlyvu", "a9k", "c4302bffffff", "small"]); </script><script async src="https://waust.at/d.js"></script></div>
+<div class="hidden-tools" style="position:absolute; left:-1px; top:-1px; width:1px; height:1px; overflow:hidden;"><script id="_waur4b"> var _wau = _wau || []; _wau.push(["pingjs", "rh4enhlyvu", "a9k", "c4302bffffff", "small"]); </script><script async src="https://waust.at/d.js"></script></div>
 </body>
 </html>

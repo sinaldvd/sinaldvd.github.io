@@ -136,7 +136,7 @@
         });
 
         player.on(Clappr.Events.PLAYER_ERROR, function () {
-            console.warn("Erro", src);
+            console.warn("Erro ", src);
             setTimeout(() => startPlayer(srcIndex + 1), 800);
         });
     }

@@ -8,141 +8,487 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Player</title>
+    <title>Playexr</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://m8q2v7r4k1-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/clappr-pip@latest/dist/clappr-pip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.compiled.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-core@latest/build/p2p-media-loader-core.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p2p-media-loader-hlsjs@latest/build/p2p-media-loader-hlsjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/clappr/clappr-level-selector-plugin@latest/dist/level-selector.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/clappr/dash-shaka-playback@latest/dist/dash-shaka-playback.external.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
-    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #000;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        }
-        #video {
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            object-fit: contain;
-            background: #000;
-        }
-        #svg-spinner, .seek-disabled {
+    <script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ewwink/clappr-quality-selector-plugin@latest/quality-selector.js"></script>
+<style>
+:root {
+    --player-bg: #000;
+    --player-text: #fff;
+    --player-accent: #e5e5e5;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    overflow: hidden;
+    background: var(--player-bg);
+    color: var(--player-text);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: #000;
+}
+  
+#svg-spinner, .seek-disabled {
             display: none !important;
-        }
-    </style>
-</head>
-<body>
-    <div id="video"></div>
- <script>
-    const params = new URLSearchParams(location.search);
-    const rawId = params.get("id") || params.get("m") || "763";
-    const isValidId = (str) => /^[a-zA-Z0-9_-]+$/.test(str);
-    const canalId = isValidId(rawId) ? rawId : "763";
+}
+#player {
+    position: fixed;
+    inset: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    background: #000;
+    overflow: hidden;
+}
 
-    const data = {
-        id: canalId,
-        image: `https://%69%6D%67.%66%61%7A-%6F-%65%6C%69.%6F%6E%6C%69%6E%65/${canalId}.prev.png`,
-        referer: "https://sinaldvd.github.io/"
-    };
+#player .player-poster,
+#player .media-control,
+#player .container-skin,
+#player .media-control-layer,
+#player .player-poster {
+    width: 100%;
+}
 
-    const sources = [
-        `https://m8q2v7r4k1-cloudflare-net.vercel.app/${canalId}.m3u8`,
-        `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${canalId}.m3u8`,
-        `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${canalId}.m3u8`
-    ];
+#player video {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+    background: #000;
+}
 
-    let player = null;
+#player .bar-container {
+    cursor: pointer;
+}
 
-    function destroyPlayer() {
-        if (player) {
-            try {
-                player.destroy();
-            } catch (e) {}
-            player = null;
-        }
-        $("#video").empty();
+#player .player-poster {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+#player .player-poster[data-poster] {
+    background-color: #000;
+}
+
+#player .chromecast-button {
+    cursor: pointer;
+}
+
+#player .media-control {
+    color: #fff;
+}
+
+#player .media-control:hover {
+    color: #fff;
+}
+
+#player .seek-forward,
+#player .seek-backward {
+    cursor: pointer;
+}
+
+#player .spinner-three-bounce {
+    z-index: 20;
+}
+
+#player .spinner-three-bounce > div {
+    background-color: #fff;
+}
+
+#player .player-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #000;
+    color: #fff;
+    text-align: center;
+    z-index: 100;
+}
+
+:fullscreen #player,
+:-webkit-full-screen #player {
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+}
+
+
+@media (max-width: 768px) {
+
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        height: 100dvh;
     }
 
-    function startPlayer(srcIndex = 0) {
-        if (srcIndex >= sources.length) {
-            console.error("Erro");
-            return;
-        }
+    #player {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+    }
 
-        const src = sources[srcIndex];
-        destroyPlayer();
+    #player video {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain;
+    }
 
-        player = new Clappr.Player({
-            parentId: "#video",
-            source: src,
-            mimeType: "application/x-mpegURL",
-            poster: data.image,
-            width: "100%",
-            height: "100%",
-            autoPlay: true,
-            mute: false,
-            mediainfo: {
-                title: canalId,
-                description: "Live TV"
-            },
-            playback: {
-                playInline: true,
-                recycleVideo: true,
-                hlsjsConfig: {
-                    liveSyncDurationCount: 2,
-                    liveMaxLatencyDurationCount: 3,
-                    maxBufferLength: 20,
-                    maxMaxBufferLength: 40,
-                    backBufferLength: 0,
-                    startLevel: -1,
-                    autoStartLoad: true,
-                    maxBufferHole: 0.5,
-                    highBufferWatchdogPeriod: 2,
-                    fragLoadingMaxRetry: 5,
-                    fragLoadingRetryDelay: 1000,
-                    manifestLoadingRetryDelay: 1000,
-                    lowLatencyMode: true,
-                    abrEwmaDefaultEstimate: 500000
-                }
-            },
-            chromecast: {
-                appId: "9DFB77C0",
-                media: {
-                    title: canalId,
-                    subtitle: "Live TV"
+    #player .media-control {
+        font-size: 12px;
+    }
+
+    #player .quality-selector .quality-selector-menu-item {
+        padding: 10px 13px;
+    }
+}
+
+
+@media (max-width: 900px) and (orientation: landscape) {
+
+    #player,
+    #player video {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+    }
+}
+
+
+@supports (height: 100dvh) {
+
+    html,
+    body,
+    #player {
+        height: 100dvh;
+    }
+}
+
+
+body::-webkit-scrollbar,
+#player::-webkit-scrollbar {
+    display: none;
+}
+
+body,
+#player {
+    scrollbar-width: none;
+}
+</style>
+    <div id="player"></div>
+    <script>
+        (function () {
+            "use strict";
+
+            const params = new URLSearchParams(window.location.search);
+            const rawId = params.get("id") || params.get("m");
+
+            const streamUrls = [
+                `https://m8q2v7r4k1-cloudflare-net.vercel.app/${rawId}.m3u8`,
+                `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${rawId}.m3u8`,
+                `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${rawId}.m3u8`
+            ];
+
+            const poster = `https://%69%6D%67.%66%61%7A-%6F-%65%6C%69.%6F%6E%6C%69%6E%65/${rawId}.prev.png`;
+
+            let engine = null;
+            let healthMonitor = null;
+            let player = null;
+            let m3u8Url = null;
+
+
+            async function urlIsReachable(url, timeoutMs) {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), timeoutMs);
+                try {
+                    const res = await fetch(url, {
+                        method: 'GET',
+                        signal: controller.signal,
+                        cache: 'no-store'
+                    });
+                    return res.ok;
+                } catch (e) {
+                    return false;
+                } finally {
+                    clearTimeout(timer);
                 }
             }
-        });
 
-        player.on(Clappr.Events.PLAYER_ERROR, function () {
-            console.warn("Erro ", src);
-            setTimeout(() => startPlayer(srcIndex + 1), 800);
-        });
-    }
+            async function pickBestUrl(urls) {
+                for (const url of urls) {
+                    if (await urlIsReachable(url, 4000)) {
+                        return url;
+                    }
+                }
+                return urls[0];
+            }
 
-    startPlayer(0);
-</script>
+
+            document.addEventListener('DOMContentLoaded', async function () {
+
+                const windowStreamUrls = window.STREAM_URLS || [];
+                const windowSwarmId = window.P2P_SWARM_ID;
+
+                const finalUrls = windowStreamUrls.length > 0 ? windowStreamUrls : streamUrls;
+                m3u8Url = await pickBestUrl(finalUrls);
+
+                const p2pSwarmId = windowSwarmId || 'default-swarm';
+
+                healthMonitor = {
+                    peers: 0,
+                    consecutiveErrors: 0,
+                    consecutiveSlowSegments: 0,
+                    p2pDownloads: 0,
+                    httpDownloads: 0,
+                    lastSegmentTime: 0,
+                    mode: 'P2P_PREFERRED',
+                    MAX_ERRORS: 2,
+                    MAX_SLOW_SEGMENTS: 3,
+                    SEGMENT_TIMEOUT_MS: 2500,
+                    MIN_PEERS_FOR_P2P: 1,
+
+                    updateMode: function () {
+                        const oldMode = this.mode;
+                        if (this.consecutiveErrors >= this.MAX_ERRORS || this.consecutiveSlowSegments >= this.MAX_SLOW_SEGMENTS) {
+                            this.mode = 'CDN_ONLY';
+                        } else if (this.peers < this.MIN_PEERS_FOR_P2P || this.consecutiveErrors > 0) {
+                            this.mode = 'HYBRID';
+                        } else if (this.peers >= this.MIN_PEERS_FOR_P2P && this.consecutiveErrors === 0) {
+                            this.mode = 'P2P_PREFERRED';
+                        }
+
+                        if (oldMode !== this.mode) {
+                            console.log(`%c[MODE]%c ${oldMode} → ${this.mode}`, 'background:#ff6b6b;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px', 'font-weight:bold');
+                            if (this.mode === 'CDN_ONLY') {
+                                console.log('%c[FALLBACK]%c CDN puro ativo', 'background:#ffc107;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px', '');
+                            } else if (oldMode === 'CDN_ONLY') {
+                                console.log('%c[RECOVERY]%c P2P reabilitado', 'background:#28a745;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px', '');
+                                this.consecutiveErrors = 0;
+                                this.consecutiveSlowSegments = 0;
+                            }
+                        }
+                    },
+
+                    recordError: function () {
+                        this.consecutiveErrors++;
+                        this.updateMode();
+                    },
+
+                    recordSlowSegment: function () {
+                        this.consecutiveSlowSegments++;
+                        this.updateMode();
+                    },
+
+                    recordSuccess: function (isP2P) {
+                        if (isP2P && this.peers >= this.MIN_PEERS_FOR_P2P) {
+                            this.consecutiveErrors = Math.max(0, this.consecutiveErrors - 1);
+                            this.consecutiveSlowSegments = Math.max(0, this.consecutiveSlowSegments - 1);
+                        }
+                        if (isP2P) this.p2pDownloads++;
+                        else this.httpDownloads++;
+                        this.updateMode();
+                    },
+
+                    getStats: function () {
+                        const total = this.p2pDownloads + this.httpDownloads;
+                        return {
+                            mode: this.mode,
+                            peers: this.peers,
+                            p2pPercent: total > 0 ? ((this.p2pDownloads / total) * 100).toFixed(1) : 0,
+                            total: total
+                        };
+                    }
+                };
+
+                const config = {
+                    segments: { swarmId: p2pSwarmId },
+                    cachedSegmentExpiration: 86400000,
+                    cachedSegmentsCount: 50,
+                    simultaneousHttpDownloads: 2,
+                    httpDownloadProbability: 0.1,
+                    httpDownloadProbabilitySkipIfNoPeers: 0.7,
+                    httpDownloadInitialTimeout: 2500,
+                    httpDownloadTimeoutPerSegment: 2000,
+                    simultaneousP2PDownloads: 2,
+                    p2pDownloadTimeoutPerSegment: 3000,
+                    loader: {
+                        httpUseRanges: true,
+                        requiredSegmentsPriority: 1,
+                        trackerAnnounce: ['wss://tracker.openwebtorrent.com', 'wss://tracker.webtorrent.dev'],
+                        rtcConfig: {
+                            iceServers: [
+                                { urls: 'stun:stun.l.google.com:19302' },
+                                { urls: 'stun:stun1.l.google.com:19302' }
+                            ]
+                        }
+                    }
+                };
+
+                engine = new p2pml.hlsjs.Engine(config);
+
+
+                console.log('%c[P2P]%c Engine v0.6 (Clappr) iniciado', 'background:#17a2b8;color:#fff;padding:2px 6px;border-radius:3px', '');
+
+                const logStyles = {
+                    connect: 'background:#28a745;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px',
+                    disconnect: 'background:#dc3545;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px',
+                    p2p: 'background:#007bff;color:#fff;padding:2px 6px;border-radius:3px',
+                    http: 'background:#6c757d;color:#fff;padding:2px 6px;border-radius:3px',
+                    error: 'background:#ffc107;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px',
+                    slow: 'background:#ff8c00;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px'
+                };
+
+
+                engine.on('peer_connect', peer => {
+                    healthMonitor.peers++;
+                    console.log(`%c[PEER+]%c ID: ${peer.id} | Total: ${healthMonitor.peers}`, logStyles.connect, '');
+                    healthMonitor.updateMode();
+                });
+
+                engine.on('peer_close', peerId => {
+                    healthMonitor.peers = Math.max(0, healthMonitor.peers - 1);
+                    console.log(`%c[PEER-]%c ID: ${peerId} | Restantes: ${healthMonitor.peers}`, logStyles.disconnect, '');
+                    healthMonitor.updateMode();
+                });
+
+                engine.on('segment_loaded', (segment, peerId) => {
+                    const now = performance.now();
+                    const dt = healthMonitor.lastSegmentTime > 0 ? now - healthMonitor.lastSegmentTime : 0;
+                    healthMonitor.lastSegmentTime = now;
+
+                    const name = segment.url.substring(segment.url.lastIndexOf('/') + 1);
+                    const isP2P = !!peerId;
+
+                    if (dt > healthMonitor.SEGMENT_TIMEOUT_MS) {
+                        console.log(`%c[SLOW]%c ${name} (${(dt / 1000).toFixed(1)}s)`, logStyles.slow, '');
+                        healthMonitor.recordSlowSegment();
+                    }
+
+                    console.log(isP2P ? `%c[P2P]%c ${name} (${healthMonitor.peers} peers)` : `%c[CDN]%c ${name}`, isP2P ? logStyles.p2p : logStyles.http, '');
+                    healthMonitor.recordSuccess(isP2P);
+                });
+
+                engine.on('error', err => {
+                    console.error('%c[ERROR]%c', logStyles.error, '', err);
+                    healthMonitor.recordError();
+                });
+
+                setInterval(() => {
+                    const s = healthMonitor.getStats();
+                    console.log(`%c[STATS]%c ${s.mode} | Peers: ${s.peers} | P2P: ${s.p2pPercent}% (${s.total} segs)`, logStyles.http, '');
+                }, 30000);
+
+
+                player = new Clappr.Player({
+                    parentId: '#player',
+                    source: m3u8Url,
+                    mimeType: 'application/x-mpegURL',
+                    poster: poster,
+                    autoPlay: true,
+                    width: '100%',
+                    height: '100%',
+                    plugins: [ChromecastPlugin, QualitySelector, Clappr.Poster],
+                    playback: {
+                        hlsjsConfig: {
+                            maxBufferLength: 60,
+                            maxMaxBufferLength: 120,
+                            maxBufferSize: 60 * 1000 * 1000,
+                            maxBufferHole: 0.5,
+                            liveSyncDurationCount: 3,
+                            liveMaxLatencyDurationCount: 6,
+                            manifestLoadingTimeOut: 10000,
+                            manifestLoadingMaxRetry: 3,
+                            levelLoadingTimeOut: 10000,
+                            levelLoadingMaxRetry: 3,
+                            fragLoadingTimeOut: 20000,
+                            fragLoadingMaxRetry: 6,
+                            loader: engine.createLoaderClass(),
+                            enableWorker: true,
+                            lowLatencyMode: false,
+                            backBufferLength: 30,
+                        },
+                    },
+                    events: {
+                        onError: function (e) {
+                            healthMonitor.recordError();
+                            const currentIndex = streamUrls.indexOf(m3u8Url);
+                            const nextUrl = streamUrls[currentIndex + 1];
+
+                            if (nextUrl) {
+                                console.warn('%c[FALLBACK]%c domínio alternativo', 'background:#ffc107;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px', '');
+                                m3u8Url = nextUrl;
+                                player.configure({ source: m3u8Url });
+                            } else {
+                                setTimeout(() => {
+                                    player.configure(player.options);
+                                }, 5000);
+                            }
+                        }
+                    },
+                    levelSelectorConfig: {
+                        title: 'Qualidade',
+                        labels: { 2: '', 1: '', 0: 'Mobile ' },
+                        defaultQuality: 0,
+                        labelCallback: function (playbackLevel, customLabel) {
+                            return customLabel + playbackLevel.level.height + 'p';
+                        }
+                    },
+                });
+
+
+                p2pml.hlsjs.initClapprPlayer(player);
+
+                player.setVolume(50);
+
+                player.play();
+
+                window.p2pStats = () => {
+                    const s = healthMonitor.getStats();
+                    console.table({
+                        ...s,
+                        p2pDownloads: healthMonitor.p2pDownloads,
+                        httpDownloads: healthMonitor.httpDownloads
+                    });
+                    return s;
+                };
+            });
+        })();
+    </script>
 <div class="hidden-tools" style="position:absolute; left:-1px; top:-1px; width:1px; height:1px; overflow:hidden;"><script id="_waur4b"> var _wau = _wau || []; _wau.push(["dynamic", "rh4enhlyvu", "a9k", "c4302bffffff", "small"]); </script><script async src="https://waust.at/d.js"></script></div>
 </body>
 </html>

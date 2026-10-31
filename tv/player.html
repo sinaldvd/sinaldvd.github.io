@@ -15,6 +15,8 @@
     <link rel="preconnect" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://t5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://calmcd3b.mpjaq3evvk.workers.dev" crossorigin>
+    <link rel="dns-prefetch" href="https://calmcd3b.mpjaq3evvk.workers.dev">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="dns-prefetch" href="https://m8q2v7r4k1-cloudflare-net.vercel.app">
     <link rel="dns-prefetch" href="https://a9b8c7d6e5f4-cloudflare-net.vercel.app">
@@ -94,8 +96,64 @@ body::-webkit-scrollbar,
 body, #player {
     scrollbar-width: none;
 }
+
+#ad-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #000;
+    display: none;
+    cursor: pointer;
+}
+#ad-overlay.active { display: block; }
+#ad-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+    display: block;
+}
+#ad-label {
+    position: absolute;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: 12px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: #fff;
+    background: rgba(0,0,0,.6);
+    border-radius: 4px;
+    pointer-events: none;
+}
+#ad-skip {
+    position: absolute;
+    right: 12px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(0,0,0,.75);
+    border: 1px solid rgba(255,255,255,.5);
+    border-radius: 6px;
+    cursor: default;
+    z-index: 2;
+}
+#ad-skip.ready {
+    background: #fff;
+    color: #000;
+    cursor: pointer;
+}
 </style>
+</head>
+<body>
     <div id="player"></div>
+
+    <div id="ad-overlay">
+        <video id="ad-video" playsinline autoplay></video>
+        <div id="ad-label">Anúncio</div>
+        <button id="ad-skip" type="button">Pular em 5</button>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/ewwink/clappr-quality-selector-plugin@latest/quality-selector.js"></script>
@@ -112,8 +170,19 @@ body, #player {
             return;
         }
 
+
+        const AD_VIDEOS = [
+            "https://calmcd3b.mpjaq3evvk.workers.dev/pasta/vid/1Ke3cf6006f5c.mp4",
+            "https://calmcd3b.mpjaq3evvk.workers.dev/pasta/vid/2Ke3cf6006f5c.mp4",
+            "https://calmcd3b.mpjaq3evvk.workers.dev/pasta/vid/3Ke3cf6006f5c.mp4"
+        ];
+        const AD_CLICK_URL = "https://tr.ee/neurallinks";
+        const AD_SKIP_SECONDS = 5;
+        const AD_LOAD_TIMEOUT_MS = 8000;
+
         const streamUrls = [
-            `https://m8q2v7r4k1-cloudflare-net.vercel.app/${rawId}.m3u8`,
+            `https://m8q2v7r4k1.-.cloudflare-net.vercel..app/${rawId}.m3u8`,
+            `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${rawId}.m3u8`,
             `https://a9b8c7d6e5f4-cloudflare-net.vercel.app/${rawId}.m3u8`,
             `https://t5r4e3w2q1y0-cloudflare-net.vercel.app/${rawId}.m3u8`
         ];
@@ -122,8 +191,205 @@ body, #player {
         let engine = null;
         let healthMonitor = null;
         let player = null;
-        let m3u8Url = streamUrls[0]; 
+        let m3u8Url = streamUrls[0];
         let p2pReady = false;
+        let streamStarted = false;
+        let playerUsesP2P = false;
+
+        const adOverlay = document.getElementById("ad-overlay");
+        const adVideo = document.getElementById("ad-video");
+        const adLabel = document.getElementById("ad-label");
+        const adSkip = document.getElementById("ad-skip");
+
+        let adOrder = AD_VIDEOS.slice().sort(() => Math.random() - 0.5); 
+        let adIndex = 0;
+        let countdownTimer = null;
+        let adFinished = false;
+        let adHls = null;
+        let adLoadTimer = null;
+
+
+        function startStream() {
+            if (streamStarted) return;
+            streamStarted = true;
+            createPlayer(m3u8Url, p2pReady);
+        }
+
+        function destroyAdHls() {
+            if (adHls) {
+                try { adHls.destroy(); } catch (e) {}
+                adHls = null;
+            }
+        }
+
+        function finishAd() {
+            if (adFinished) return;
+            adFinished = true;
+            console.log("[AD] finalizado, liberando stream");
+            clearInterval(countdownTimer);
+            clearTimeout(adLoadTimer);
+            destroyAdHls();
+
+
+            adOverlay.classList.remove("active");
+            adOverlay.style.setProperty("display", "none", "important");
+            adOverlay.style.setProperty("pointer-events", "none", "important");
+
+            try {
+                adVideo.pause();
+                adVideo.removeAttribute("src");
+                adVideo.load();
+            } catch (e) {}
+
+            setTimeout(() => { try { adOverlay.remove(); } catch (e) {} }, 100);
+
+
+            try {
+                if (!player) {
+                    startStream();
+                } else if (p2pReady && !playerUsesP2P) {
+                    createPlayer(m3u8Url, true); 
+                } else {
+                    player.setVolume(50);
+                    player.play();
+                }
+            } catch (e) {
+                console.error("[AD] erro ao liberar o stream", e);
+            }
+        }
+
+        function startCountdown() {
+            if (countdownTimer) return; 
+            let left = AD_SKIP_SECONDS;
+            adSkip.classList.remove("ready");
+            adSkip.textContent = "Pular em " + left;
+            countdownTimer = setInterval(() => {
+                left--;
+                if (left > 0) {
+                    adSkip.textContent = "Pular em " + left;
+                } else {
+                    clearInterval(countdownTimer);
+                    adSkip.textContent = "Pular anúncio ▶";
+                    adSkip.classList.add("ready");
+                }
+            }, 1000);
+        }
+
+
+        function tryPlayAd() {
+            adVideo.muted = false;
+            const p = adVideo.play();
+            if (p && p.catch) {
+                p.catch(() => {
+                    adVideo.muted = true;
+                    adVideo.play().catch(() => {});
+                });
+            }
+        }
+        function unmuteOnInteraction() {
+            if (adVideo.muted) adVideo.muted = false;
+        }
+        ["pointerdown", "touchstart", "keydown"].forEach(ev =>
+            document.addEventListener(ev, unmuteOnInteraction, { once: true, passive: true })
+        );
+
+        function isHlsUrl(url) {
+            return /\.m3u8(\?|$)/i.test(url);
+        }
+
+        function loadHlsLib() {
+            if (window.Hls) return Promise.resolve();
+            return loadScript("https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js");
+        }
+
+        function nextAd(reason) {
+            if (adFinished) return;
+            console.warn("[AD] falhou:", adOrder[adIndex], reason);
+            clearTimeout(adLoadTimer);
+            destroyAdHls();
+            adIndex++;
+            playAd();
+        }
+
+        function playAd() {
+            if (adIndex >= adOrder.length) {
+
+                console.warn("[AD] nenhum vídeo carregou, mantendo tela de anúncio");
+                adVideo.style.display = "none";
+                adLabel.textContent = "Anúncio • Toque para Saber Mais";
+                startCountdown();
+                return;
+            }
+
+            const url = adOrder[adIndex];
+            console.log("[AD] tentando:", url);
+
+            clearTimeout(adLoadTimer);
+            adLoadTimer = setTimeout(() => nextAd("timeout"), AD_LOAD_TIMEOUT_MS);
+
+            if (isHlsUrl(url) && !adVideo.canPlayType("application/vnd.apple.mpegurl")) {
+                loadHlsLib().then(() => {
+                    if (adFinished) return;
+                    if (window.Hls && Hls.isSupported()) {
+                        adHls = new Hls();
+                        adHls.loadSource(url);
+                        adHls.attachMedia(adVideo);
+                        adHls.on(Hls.Events.ERROR, (ev, data) => {
+                            if (data.fatal) nextAd("hls " + data.details);
+                        });
+                        tryPlayAd();
+                    } else {
+                        nextAd("hls não suportado");
+                    }
+                }).catch(() => nextAd("falha ao carregar hls.js"));
+            } else {
+                adVideo.src = url;
+                tryPlayAd();
+            }
+        }
+
+        adVideo.addEventListener("playing", () => {
+            clearTimeout(adLoadTimer);
+            startCountdown();
+        });
+        adVideo.addEventListener("ended", finishAd);
+        adVideo.addEventListener("error", () => nextAd("erro no <video>"));
+        adVideo.addEventListener("loadeddata", () => console.log("[AD] carregado:", adVideo.currentSrc));
+
+
+        adOverlay.addEventListener("click", (e) => {
+            if (e.target === adSkip) return;
+            window.open(AD_CLICK_URL, "_blank", "noopener");
+        });
+
+        function trySkip(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            if (adSkip.classList.contains("ready")) finishAd();
+        }
+        adSkip.addEventListener("click", trySkip);
+        adSkip.addEventListener("touchend", trySkip);
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const s = document.createElement("script");
+                s.src = src;
+                s.async = true;
+                s.onload = resolve;
+                s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+
+        if (AD_VIDEOS.length > 0) {
+            adOverlay.classList.add("active");
+
+            setTimeout(() => { if (!adFinished) startCountdown(); }, 6000);
+            playAd();
+        } else {
+            adFinished = true;
+        }
+
 
         healthMonitor = {
             peers: 0,
@@ -210,7 +476,7 @@ body, #player {
                 source: source,
                 mimeType: "application/x-mpegURL",
                 poster: poster,
-                autoPlay: true,
+                autoPlay: adFinished,
                 width: "100%",
                 height: "100%",
                 plugins: [ChromecastPlugin, QualitySelector, Clappr.Poster],
@@ -247,22 +513,13 @@ body, #player {
                 } catch (e) {}
             }
 
+            playerUsesP2P = !!(useP2PLoader && engine);
             player.setVolume(50);
-            player.play();
+            if (adFinished) player.play();
         }
 
-        createPlayer(m3u8Url, false);
 
-        function loadScript(src) {
-            return new Promise((resolve, reject) => {
-                const s = document.createElement("script");
-                s.src = src;
-                s.async = true;
-                s.onload = resolve;
-                s.onerror = reject;
-                document.head.appendChild(s);
-            });
-        }
+        if (adFinished) startStream();
 
         async function initP2P() {
             try {
@@ -347,8 +604,8 @@ body, #player {
 
                 p2pReady = true;
 
-                if (player && player.isPlaying()) {
 
+                if (adFinished && streamStarted && player && player.isPlaying()) {
                     createPlayer(m3u8Url, true);
                 }
 
@@ -366,7 +623,6 @@ body, #player {
                 console.warn("[P2P] Falha ao carregar, continuando só com CDN", err);
             }
         }
-
 
         if (document.readyState === "complete" || document.readyState === "interactive") {
             setTimeout(initP2P, 100);

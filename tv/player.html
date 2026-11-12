@@ -12,6 +12,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://o67y8q2v7r4k1.cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://m8q2v7r4k1-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://u9q2v7r4k1-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://i5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
@@ -222,10 +223,27 @@ body, #player {
         let adLoadTimer = null;
 
 
-        function startStream() {
-            if (streamStarted) return;
+        function prepareStream() {
+            if (streamStarted || adFinished) return;
             streamStarted = true;
+            console.log("[STREAM] iniciando pré-carregamento durante o anúncio");
             createPlayer(m3u8Url, p2pReady);
+        }
+
+        function startStream() {
+            if (!player) {
+                streamStarted = true;
+                createPlayer(m3u8Url, p2pReady);
+                return;
+            }
+
+            try {
+                player.setVolume(50);
+                player.play();
+                console.log("[STREAM] reprodução liberada");
+            } catch (e) {
+                console.warn("[STREAM] não foi possível liberar o player preparado", e);
+            }
         }
 
         function destroyAdHls() {
@@ -260,11 +278,10 @@ body, #player {
             try {
                 if (!player) {
                     startStream();
-                } else if (p2pReady && !playerUsesP2P) {
-                    createPlayer(m3u8Url, true); 
                 } else {
-                    player.setVolume(50);
-                    player.play();
+                    // Não recria o player aqui: isso descartaria o buffer acumulado
+                    // durante o anúncio e faria o usuário esperar novamente.
+                    startStream();
                 }
             } catch (e) {
                 console.error("[AD] erro ao liberar o stream", e);
@@ -397,10 +414,15 @@ body, #player {
         if (AD_VIDEOS.length > 0) {
             adOverlay.classList.add("active");
 
+            setTimeout(() => {
+                if (!adFinished) prepareStream();
+            }, 0);
+
             setTimeout(() => { if (!adFinished) startCountdown(); }, 6000);
             playAd();
         } else {
             adFinished = true;
+            startStream();
         }
 
 
@@ -489,7 +511,8 @@ body, #player {
                 source: source,
                 mimeType: "application/x-mpegURL",
                 poster: poster,
-                autoPlay: adFinished,
+                autoPlay: true,
+                mute: !adFinished,
                 width: "100%",
                 height: "100%",
                 plugins: [ChromecastPlugin, QualitySelector, Clappr.Poster],
@@ -500,7 +523,7 @@ body, #player {
                     onError: function () {
                         healthMonitor.recordError();
                         const idx = streamUrls.indexOf(m3u8Url);
-                        const next = streamUrls[idx + 1];
+                        const next = streamUrls[idx >= 0 ? idx + 1 : 1];
                         if (next) {
                             console.warn("%c[FALLBACK]%c domínio alternativo", "background:#ffc107;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px", "");
                             m3u8Url = next;
@@ -527,8 +550,13 @@ body, #player {
             }
 
             playerUsesP2P = !!(useP2PLoader && engine);
-            player.setVolume(50);
-            if (adFinished) player.play();
+
+            player.setVolume(adFinished ? 50 : 0);
+            if (!adFinished) {
+                try { player.play(); } catch (e) {}
+            } else {
+                player.play();
+            }
         }
 
 
@@ -616,11 +644,6 @@ body, #player {
                 }, 30000);
 
                 p2pReady = true;
-
-
-                if (adFinished && streamStarted && player && player.isPlaying()) {
-                    createPlayer(m3u8Url, true);
-                }
 
                 window.p2pStats = () => {
                     const s = healthMonitor.getStats();

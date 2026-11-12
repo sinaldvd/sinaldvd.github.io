@@ -12,7 +12,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://o67y8q2v7r4k1.cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://m8q2v7r4k1-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://u9q2v7r4k1-cloudflare-net.vercel.app" crossorigin>
     <link rel="preconnect" href="https://i5r4e3w2q1y0-cloudflare-net.vercel.app" crossorigin>
@@ -178,6 +177,55 @@ body, #player {
             return;
         }
 
+        const CACHE_KEY = "playexr_m3u8_cache_v1";
+        const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 horas
+
+        function loadCache() {
+            try {
+                const raw = localStorage.getItem(CACHE_KEY);
+                if (!raw) return {};
+                const data = JSON.parse(raw);
+                return (data && typeof data === "object") ? data : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveCache(cache) {
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+            } catch (e) {}
+        }
+
+        function getCachedUrl(id) {
+            const cache = loadCache();
+            const entry = cache[id];
+            if (!entry || !entry.url) return null;
+            if (Date.now() - (entry.ts || 0) > CACHE_TTL_MS) {
+                delete cache[id];
+                saveCache(cache);
+                return null;
+            }
+            return entry.url;
+        }
+
+        function setCachedUrl(id, url) {
+            if (!id || !url) return;
+            const cache = loadCache();
+            cache[id] = { url: url, ts: Date.now() };
+            saveCache(cache);
+            console.log("%c[CACHE]%c salvo → " + url, "background:#28a745;color:#fff;padding:2px 6px;border-radius:3px", "");
+        }
+
+        function clearCachedUrl(id) {
+            const cache = loadCache();
+            if (cache[id]) {
+                delete cache[id];
+                saveCache(cache);
+                console.log("%c[CACHE]%c limpo para ID: " + id, "background:#dc3545;color:#fff;padding:2px 6px;border-radius:3px", "");
+            }
+        }
+
         const AD_VIDEOS = [
             "https://calmcd3b.mpjaq3evvk.workers.dev/pasta/vid/1Ke3cf6006f5c.mp4",
             "https://calmcd3b.mpjaq3evvk.workers.dev/pasta/vid/2Ke3cf6006f5c.mp4",
@@ -201,116 +249,37 @@ body, #player {
         ];
         const poster = `https://%69%6D%67.%66%61%7A-%6F-%65%6C%69.%6F%6E%6C%69%6E%65/${rawId}.prev.png`;
 
-        const CACHE_PREFIX = "m3u8cache:v1:";
-        const CACHE_TTL_MS = 50 * 60 * 1000;
-        const BAD_TTL_MS = 5 * 60 * 1000;
-
-        const m3u8Cache = {
-            _get(key) {
-                try {
-                    const raw = localStorage.getItem(CACHE_PREFIX + key);
-                    if (!raw) return null;
-                    const obj = JSON.parse(raw);
-                    if (!obj || !obj.exp || Date.now() > obj.exp) {
-                        localStorage.removeItem(CACHE_PREFIX + key);
-                        return null;
-                    }
-                    return obj.v;
-                } catch (e) { return null; }
-            },
-            _set(key, value, ttl) {
-                try {
-                    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ v: value, exp: Date.now() + ttl }));
-                } catch (e) {}
-            },
-            _del(key) {
-                try { localStorage.removeItem(CACHE_PREFIX + key); } catch (e) {}
-            },
-            getWorking(id) {
-                const url = this._get("ok:" + id);
-                return url && streamUrls.indexOf(url) !== -1 ? url : null;
-            },
-            setWorking(id, url) {
-                this._set("ok:" + id, url, CACHE_TTL_MS);
-                this._del("bad:" + this._host(url));
-            },
-            clearWorking(id) {
-                this._del("ok:" + id);
-            },
-            _host(url) {
-                try { return new URL(url).host; } catch (e) { return url; }
-            },
-            markBad(url) {
-                this._set("bad:" + this._host(url), 1, BAD_TTL_MS);
-            },
-            isBad(url) {
-                return !!this._get("bad:" + this._host(url));
-            },
-            clearAll() {
-                try {
-                    Object.keys(localStorage)
-                        .filter(k => k.indexOf(CACHE_PREFIX) === 0)
-                        .forEach(k => localStorage.removeItem(k));
-                } catch (e) {}
-            }
-        };
-        window.clearM3u8Cache = () => { m3u8Cache.clearAll(); console.log("[CACHE] limpo"); };
-
-        function buildOrderedUrls() {
-            const cached = m3u8Cache.getWorking(rawId);
-            const rest = streamUrls.filter(u => u !== cached);
-            const good = rest.filter(u => !m3u8Cache.isBad(u));
-            const bad = rest.filter(u => m3u8Cache.isBad(u));
-            const ordered = (cached ? [cached] : []).concat(good, bad);
-            console.log("[CACHE]", cached ? "HIT → " + cached : "MISS", "| ordem:", ordered.length, "domínios");
-            return ordered;
-        }
-
-        const orderedUrls = buildOrderedUrls();
-        let triedUrls = new Set();
-
         let engine = null;
         let healthMonitor = null;
         let player = null;
-        let m3u8Url = orderedUrls[0];
+        let m3u8Url = streamUrls[0];
         let p2pReady = false;
         let streamStarted = false;
         let playerUsesP2P = false;
+        let consecutiveFallbackFails = 0;
+
+        const cached = getCachedUrl(rawId);
+        if (cached && streamUrls.includes(cached)) {
+            m3u8Url = cached;
+            console.log("%c[CACHE]%c usando URL em cache → " + cached, "background:#17a2b8;color:#fff;padding:2px 6px;border-radius:3px", "");
+        }
 
         const adOverlay = document.getElementById("ad-overlay");
         const adVideo = document.getElementById("ad-video");
         const adLabel = document.getElementById("ad-label");
         const adSkip = document.getElementById("ad-skip");
 
-        let adOrder = AD_VIDEOS.slice().sort(() => Math.random() - 0.5); 
+        let adOrder = AD_VIDEOS.slice().sort(() => Math.random() - 0.5);
         let adIndex = 0;
         let countdownTimer = null;
         let adFinished = false;
         let adHls = null;
         let adLoadTimer = null;
 
-
-        function prepareStream() {
-            if (streamStarted || adFinished) return;
-            streamStarted = true;
-            console.log("[STREAM] iniciando pré-carregamento durante o anúncio");
-            createPlayer(m3u8Url, p2pReady);
-        }
-
         function startStream() {
-            if (!player) {
-                streamStarted = true;
-                createPlayer(m3u8Url, p2pReady);
-                return;
-            }
-
-            try {
-                player.setVolume(50);
-                player.play();
-                console.log("[STREAM] reprodução liberada");
-            } catch (e) {
-                console.warn("[STREAM] não foi possível liberar o player preparado", e);
-            }
+            if (streamStarted) return;
+            streamStarted = true;
+            createPlayer(m3u8Url, p2pReady);
         }
 
         function destroyAdHls() {
@@ -328,7 +297,6 @@ body, #player {
             clearTimeout(adLoadTimer);
             destroyAdHls();
 
-
             adOverlay.classList.remove("active");
             adOverlay.style.setProperty("display", "none", "important");
             adOverlay.style.setProperty("pointer-events", "none", "important");
@@ -341,12 +309,14 @@ body, #player {
 
             setTimeout(() => { try { adOverlay.remove(); } catch (e) {} }, 100);
 
-
             try {
                 if (!player) {
                     startStream();
+                } else if (p2pReady && !playerUsesP2P) {
+                    createPlayer(m3u8Url, true);
                 } else {
-                    startStream();
+                    player.setVolume(50);
+                    player.play();
                 }
             } catch (e) {
                 console.error("[AD] erro ao liberar o stream", e);
@@ -354,7 +324,7 @@ body, #player {
         }
 
         function startCountdown() {
-            if (countdownTimer) return; 
+            if (countdownTimer) return;
             let left = AD_SKIP_SECONDS;
             adSkip.classList.remove("ready");
             adSkip.textContent = "Pular em " + left;
@@ -369,7 +339,6 @@ body, #player {
                 }
             }, 1000);
         }
-
 
         function tryPlayAd() {
             adVideo.muted = false;
@@ -408,7 +377,6 @@ body, #player {
 
         function playAd() {
             if (adIndex >= adOrder.length) {
-
                 console.warn("[AD] nenhum vídeo carregou, mantendo tela de anúncio");
                 adVideo.style.display = "none";
                 adLabel.textContent = "Anúncio • Saiba Mais";
@@ -477,16 +445,10 @@ body, #player {
 
         if (AD_VIDEOS.length > 0) {
             adOverlay.classList.add("active");
-
-            setTimeout(() => {
-                if (!adFinished) prepareStream();
-            }, 0);
-
             setTimeout(() => { if (!adFinished) startCountdown(); }, 6000);
             playAd();
         } else {
             adFinished = true;
-            startStream();
         }
 
         healthMonitor = {
@@ -511,7 +473,7 @@ body, #player {
                     this.mode = "P2P_PREFERRED";
                 }
                 if (old !== this.mode) {
-                    console.log(`%c[MODE]%c ${old} → ${this.mode}`, "background:#ff6b6b;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px", "font-weight:bold");
+                    console.log("%c[MODE]%c " + old + " → " + this.mode, "background:#ff6b6b;color:#fff;font-weight:bold;padding:2px 6px;border-radius:3px", "font-weight:bold");
                 }
             },
             recordError() {
@@ -569,16 +531,12 @@ body, #player {
                 try { player.destroy(); } catch (e) {}
             }
 
-            triedUrls.add(source);
-            let cacheSaved = false;
-
             player = new Clappr.Player({
                 parentId: "#player",
                 source: source,
                 mimeType: "application/x-mpegURL",
                 poster: poster,
-                autoPlay: true,
-                mute: !adFinished,
+                autoPlay: adFinished,
                 width: "100%",
                 height: "100%",
                 plugins: [ChromecastPlugin, QualitySelector, Clappr.Poster],
@@ -586,22 +544,27 @@ body, #player {
                     hlsjsConfig: hlsConfig
                 },
                 events: {
+                    onReady: function () {
+                        consecutiveFallbackFails = 0;
+                        setCachedUrl(rawId, m3u8Url);
+                    },
                     onError: function () {
                         healthMonitor.recordError();
+                        consecutiveFallbackFails++;
 
-                        m3u8Cache.clearWorking(rawId);
-                        m3u8Cache.markBad(m3u8Url);
-                        console.warn("[CACHE] falhou, invalidado:", m3u8Url);
+                        if (consecutiveFallbackFails >= 2) {
+                            clearCachedUrl(rawId);
+                        }
 
-                        const next = orderedUrls.find(u => !triedUrls.has(u));
+                        const idx = streamUrls.indexOf(m3u8Url);
+                        const next = streamUrls[idx + 1];
                         if (next) {
                             console.warn("%c[FALLBACK]%c domínio alternativo", "background:#ffc107;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px", "");
                             m3u8Url = next;
                             createPlayer(m3u8Url, p2pReady);
                         } else {
-
-                            triedUrls = new Set();
-                            m3u8Url = orderedUrls[0];
+                            clearCachedUrl(rawId);
+                            m3u8Url = streamUrls[0];
                             setTimeout(() => createPlayer(m3u8Url, p2pReady), 4000);
                         }
                     }
@@ -616,17 +579,6 @@ body, #player {
                 }
             });
 
-            try {
-                player.on(Clappr.Events.PLAYER_TIMEUPDATE, function (pos) {
-                    if (cacheSaved) return;
-                    if (pos && pos.current > 0) {
-                        cacheSaved = true;
-                        m3u8Cache.setWorking(rawId, source);
-                        console.log("[CACHE] salvo:", source);
-                    }
-                });
-            } catch (e) {}
-
             if (p2pReady && typeof p2pml !== "undefined") {
                 try {
                     p2pml.hlsjs.initClapprPlayer(player);
@@ -634,15 +586,9 @@ body, #player {
             }
 
             playerUsesP2P = !!(useP2PLoader && engine);
-
-            player.setVolume(adFinished ? 50 : 0);
-            if (!adFinished) {
-                try { player.play(); } catch (e) {}
-            } else {
-                player.play();
-            }
+            player.setVolume(50);
+            if (adFinished) player.play();
         }
-
 
         if (adFinished) startStream();
 
@@ -696,12 +642,12 @@ body, #player {
 
                 engine.on("peer_connect", peer => {
                     healthMonitor.peers++;
-                    console.log(`%c[PEER+]%c ID: ${peer.id} | Total: ${healthMonitor.peers}`, logStyles.connect, "");
+                    console.log("%c[PEER+]%c ID: " + peer.id + " | Total: " + healthMonitor.peers, logStyles.connect, "");
                     healthMonitor.updateMode();
                 });
                 engine.on("peer_close", peerId => {
                     healthMonitor.peers = Math.max(0, healthMonitor.peers - 1);
-                    console.log(`%c[PEER-]%c ID: ${peerId} | Restantes: ${healthMonitor.peers}`, logStyles.disconnect, "");
+                    console.log("%c[PEER-]%c ID: " + peerId + " | Restantes: " + healthMonitor.peers, logStyles.disconnect, "");
                     healthMonitor.updateMode();
                 });
                 engine.on("segment_loaded", (segment, peerId) => {
@@ -711,10 +657,10 @@ body, #player {
                     const name = segment.url.substring(segment.url.lastIndexOf("/") + 1);
                     const isP2P = !!peerId;
                     if (dt > healthMonitor.SEGMENT_TIMEOUT_MS) {
-                        console.log(`%c[SLOW]%c ${name} (${(dt / 1000).toFixed(1)}s)`, logStyles.slow, "");
+                        console.log("%c[SLOW]%c " + name + " (" + (dt / 1000).toFixed(1) + "s)", logStyles.slow, "");
                         healthMonitor.recordSlowSegment();
                     }
-                    console.log(isP2P ? `%c[P2P]%c ${name} (${healthMonitor.peers} peers)` : `%c[CDN]%c ${name}`, isP2P ? logStyles.p2p : logStyles.http, "");
+                    console.log(isP2P ? "%c[P2P]%c " + name + " (" + healthMonitor.peers + " peers)" : "%c[CDN]%c " + name, isP2P ? logStyles.p2p : logStyles.http, "");
                     healthMonitor.recordSuccess(isP2P);
                 });
                 engine.on("error", err => {
@@ -724,10 +670,14 @@ body, #player {
 
                 setInterval(() => {
                     const s = healthMonitor.getStats();
-                    console.log(`%c[STATS]%c ${s.mode} | Peers: ${s.peers} | P2P: ${s.p2pPercent}% (${s.total} segs)`, logStyles.http, "");
+                    console.log("%c[STATS]%c " + s.mode + " | Peers: " + s.peers + " | P2P: " + s.p2pPercent + "% (" + s.total + " segs)", logStyles.http, "");
                 }, 30000);
 
                 p2pReady = true;
+
+                if (adFinished && streamStarted && player && player.isPlaying()) {
+                    createPlayer(m3u8Url, true);
+                }
 
                 window.p2pStats = () => {
                     const s = healthMonitor.getStats();

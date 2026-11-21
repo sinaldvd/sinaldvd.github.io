@@ -39,7 +39,6 @@ html,body{height:100%;background:#000;overflow:hidden;-webkit-tap-highlight-colo
 .tap{position:absolute;top:0;bottom:0;width:30%;z-index:5}
 video::-webkit-media-controls{display:none!important}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.light.min.js"></script>
 <script type="importmap">
 {"imports":{
@@ -51,6 +50,7 @@ window.__castReady=false;
 window.__onGCastApiAvailable=function(ok){window.__castReady=!!ok;window.dispatchEvent(new Event('castapi'));};
 </script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1" async></script>
+<script src="https://cdn.jsdelivr.net/npm/clappr-chromecast-plugin@latest/dist/clappr-chromecast-plugin.min.js"></script>
 </head>
 <body class="font-sans text-white antialiased">
 
@@ -120,18 +120,6 @@ window.__onGCastApiAvailable=function(ok){window.__castReady=!!ok;window.dispatc
 </button>
 
 <div class="ml-auto flex items-center gap-0.5 sm:gap-1">
-<div data-ref="delay" class="relative">
-<button type="button" data-action="toggleDelayMenu" class="flex h-11 items-center gap-1.5 rounded-full px-3 text-xs font-bold hover:bg-white/10" aria-label="Delay">
-<svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4"/></svg>
-<span data-ref="delayLabel" class="hidden md:inline"></span>
-</button>
-<div data-ref="delayMenu" hidden class="absolute bottom-12 right-0 min-w-[14rem] overflow-hidden rounded-xl bg-panel/95 py-1 text-sm ring-1 ring-white/10 backdrop-blur">
-<div class="px-4 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-white/40">Delay</div>
-<button type="button" data-delay="performance" class="flex w-full items-center justify-between gap-4 px-4 py-2.5 text-left hover:bg-white/5"><span><span class="block">Modo desempenho</span><span class="block text-xs text-white/40">Mais estável</span></span><span class="text-brand">✓</span></button>
-<button type="button" data-delay="balanced" class="flex w-full items-center justify-between gap-4 px-4 py-2.5 text-left hover:bg-white/5"><span><span class="block">Modo equilibrado</span><span class="block text-xs text-white/40">Delay menor</span></span><span class="text-brand">✓</span></button>
-</div>
-</div>
-
 <div data-ref="quality" hidden class="relative">
 <button type="button" data-action="toggleMenu" class="flex h-11 items-center gap-1.5 rounded-full px-3 text-xs font-bold hover:bg-white/10" aria-label="Qualidade">
 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -170,7 +158,6 @@ if (!channelId) {
   return;
 }
 
-
 const AGENDA_URL = "https://%61%70%69%73%69%6E%61%6C%70%75%62%6C%69%63%6F.%76%65%72%63%65%6C.%61%70%70/agenda.json";
 const AD_CLICK_URL = "https://tr.ee/neurallinks";
 const AD_SKIP_SECONDS = 5;
@@ -187,7 +174,6 @@ const STREAM_DOMAINS = [
 const LIVE_THRESHOLD = 12;
 const SEEK_STEP = 10;
 
-
 let streamIndex = 0;
 let src = `${STREAM_DOMAINS[0]}/${channelId}.m3u8`;
 const poster = `https://%69%6D%67.%66%61%7A-%6F-%65%6C%69.%6F%6E%6C%69%6E%65/${channelId}.prev.png`;
@@ -196,7 +182,6 @@ const UA = navigator.userAgent;
 const IS_IOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const IS_SAFARI = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(UA);
 const IS_TOUCH = matchMedia('(pointer:coarse)').matches;
-
 
 const p2pLog = (...a) => console.log('%c[P2P]', 'color:#ff5757;font-weight:bold', ...a);
 const p2pWarn = (...a) => console.warn('%c[P2P]', 'color:#ff5757;font-weight:bold', ...a);
@@ -242,7 +227,6 @@ function p2pConfig() {
   };
 }
 
-
 const root = document.getElementById('player');
 const ref = {};
 root.querySelectorAll('[data-ref]').forEach(el => ref[el.dataset.ref] = el);
@@ -255,18 +239,17 @@ let adSkipHandler = null, adClickHandler = null, showAdThisSession = false, wake
 
 const state = {
   loading: false, playing: false, error: false, muted: false, volume: 1,
-  atLive: true, idle: false, menu: null, delay: 'balanced',
+  atLive: true, idle: false, menu: null,
   isFullscreen: false, pipSupported: !!document.pictureInPictureEnabled && !IS_TOUCH,
   levels: [], level: -1, currentHeight: null, retries: 0, started: false, adPlaying: false,
   castAvail: false, casting: false, castDevice: '', airAvail: false,
 };
-const DELAY_MODES = { performance: { label: 'Desempenho', segments: 4 }, balanced: { label: 'Equilibrado', segments: 2 } };
+const LIVE_SYNC_SEGMENTS = 2; 
 
 function set(patch) { Object.assign(state, patch); render(); }
 
 function useNative() {
   const native = !!video.canPlayType('application/vnd.apple.mpegurl');
-
   if (native && (IS_IOS || IS_SAFARI)) return true;
   return native && !(window.Hls && Hls.isSupported());
 }
@@ -322,10 +305,6 @@ function render() {
   ref.qualityLabel.textContent = qualityLabel();
   ref.menu.toggleAttribute('hidden', s.menu !== 'quality');
   ref.menu.querySelectorAll('[data-level]').forEach(b => b.lastElementChild.toggleAttribute('hidden', Number(b.dataset.level) !== s.level));
-  ref.delay.toggleAttribute('hidden', useNative());
-  ref.delayLabel.textContent = DELAY_MODES[s.delay].label;
-  ref.delayMenu.toggleAttribute('hidden', s.menu !== 'delay');
-  ref.delayMenu.querySelectorAll('[data-delay]').forEach(b => b.lastElementChild.toggleAttribute('hidden', b.dataset.delay !== s.delay));
   ref.castBtn.toggleAttribute('hidden', IS_IOS || IS_SAFARI);
   ref.castIcon.classList.toggle('text-brand', s.casting);
   ref.airBtn.toggleAttribute('hidden', !(s.airAvail || !!video.webkitShowPlaybackTargetPicker));
@@ -333,7 +312,6 @@ function render() {
   ref.iconFsEnter.toggleAttribute('hidden', s.isFullscreen);
   ref.iconFsExit.toggleAttribute('hidden', !s.isFullscreen);
 }
-
 
 async function checkAgendaForAd() {
   try {
@@ -415,7 +393,6 @@ async function startWithAd() {
   load();
 }
 
-
 function nextDomain() {
   if (streamIndex >= STREAM_DOMAINS.length - 1) return false;
   streamIndex++;
@@ -441,7 +418,7 @@ async function load(reset = true) {
   hls = new HlsClass({
     ...(useP2P ? { p2p: p2pConfig() } : {}),
     lowLatencyMode: true,
-    liveSyncDurationCount: DELAY_MODES[state.delay].segments,
+    liveSyncDurationCount: LIVE_SYNC_SEGMENTS,
     maxBufferLength: 30,
     backBufferLength: 60,
     manifestLoadingMaxRetry: 1,
@@ -497,13 +474,11 @@ function startPlayback() {
   if (state.volume === 0) state.volume = 1;
   video.volume = state.volume;
   video.play().catch(() => {
-
     video.muted = true;
     video.play().catch(() => set({ loading: false }));
   });
 }
 function fail() { set({ error: true, loading: false, playing: false }); }
-
 
 function play() {
   if (adBusy) return;
@@ -556,13 +531,6 @@ function setLevel(i) {
   set({ level: i, menu: null });
   if (hls) hls.currentLevel = i === -1 ? -1 : state.levels[i].index;
 }
-function setDelay(mode) {
-  if (!DELAY_MODES[mode]) return;
-  const changed = mode !== state.delay;
-  set({ delay: mode, menu: null });
-  try { localStorage.setItem('player-delay', mode); } catch {}
-  if (changed && state.playing) load();
-}
 function fullscreen() {
   const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
   if (fsEl) return (document.exitFullscreen || document.webkitExitFullscreen).call(document);
@@ -571,7 +539,7 @@ function fullscreen() {
       try { screen.orientation?.lock?.('landscape').catch(() => {}); } catch {}
     }).catch(() => {});
   } else if (root.webkitRequestFullscreen) root.webkitRequestFullscreen();
-  else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();  
+  else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();   
 }
 function pip() {
   if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
@@ -583,7 +551,6 @@ function poke() {
   idleTimer = setTimeout(() => { if (!state.menu) set({ idle: true }); }, 3500);
 }
 
-
 function airplay() {
   if (video.webkitShowPlaybackTargetPicker) return video.webkitShowPlaybackTargetPicker();
   if (video.remote?.prompt) video.remote.prompt().catch(() => {});
@@ -591,10 +558,8 @@ function airplay() {
 if (window.WebKitPlaybackTargetAvailabilityEvent) {
   video.addEventListener('webkitplaybacktargetavailabilitychanged', e => set({ airAvail: e.availability === 'available' }));
 } else if (video.remote?.watchAvailability) {
-
   video.remote.watchAvailability(a => { if (useNative()) set({ airAvail: a }); }).catch(() => {});
 }
-
 
 let castCtx = null, castPlayer = null, castCtl = null;
 
@@ -686,7 +651,6 @@ const actions = {
   toggle, toggleMute: () => (state.muted ? unmute() : mute()),
   goLive,
   toggleMenu: () => set({ menu: state.menu === 'quality' ? null : 'quality' }),
-  toggleDelayMenu: () => set({ menu: state.menu === 'delay' ? null : 'delay' }),
   pip, fullscreen, airplay, cast: cast_, castStop,
   adToggle: () => (ref.adVideo.paused ? ref.adVideo.play().catch(() => {}) : ref.adVideo.pause()),
   adSkip: () => adSkipHandler?.(),
@@ -696,14 +660,11 @@ const actions = {
 root.addEventListener('click', e => {
   const level = e.target.closest('[data-level]');
   if (level) return setLevel(Number(level.dataset.level));
-  const delay = e.target.closest('[data-delay]');
-  if (delay) return setDelay(delay.dataset.delay);
   const btn = e.target.closest('[data-action]');
   if (btn) actions[btn.dataset.action]?.();
   if (state.menu && !e.target.closest(`[data-ref="${state.menu}"]`) && !btn) set({ menu: null });
 });
 document.addEventListener('click', e => { if (state.menu && !root.contains(e.target)) set({ menu: null }); });
-
 
 let lastTap = 0, tapTimer = null;
 ref.surface.addEventListener('click', e => {
@@ -816,8 +777,6 @@ document.addEventListener('webkitfullscreenchange', () => set({ isFullscreen: !!
 try {
   const sv = parseFloat(localStorage.getItem('player-volume'));
   if (!isNaN(sv)) state.volume = sv;
-  const sd = localStorage.getItem('player-delay');
-  if (DELAY_MODES[sd]) state.delay = sd;
 } catch {}
 video.volume = state.volume;
 

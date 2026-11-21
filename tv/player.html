@@ -57,7 +57,6 @@ window.__onGCastApiAvailable=function(ok){window.__castReady=!!ok;window.dispatc
 
 <video data-ref="video" class="absolute inset-0 h-full w-full bg-black object-contain" playsinline webkit-playsinline x-webkit-airplay="allow" preload="none"></video>
 
-<!-- zonas de toque: duplo toque = tela cheia, central = play/pause -->
 <div class="absolute inset-0 z-[4]" data-ref="surface"></div>
 
 <div data-ref="loading" class="pointer-events-none absolute inset-0 z-[6] flex flex-col items-center justify-center gap-4 bg-black/40">
@@ -68,7 +67,6 @@ window.__onGCastApiAvailable=function(ok){window.__castReady=!!ok;window.dispatc
 <svg class="h-20 w-20 text-white drop-shadow-[0_4px_24px_rgba(0,0,0,.6)] transition duration-200 group-hover:scale-110 group-hover:text-brand sm:h-28 sm:w-28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11.13-6.86a1 1 0 0 0 0-1.72L9.5 4.28A1 1 0 0 0 8 5.14z"/></svg>
 </button>
 
-<!-- Overlay de transmissão -->
 <div data-ref="castLayer" hidden class="absolute inset-0 z-[8] flex flex-col items-center justify-center gap-3 bg-panel/95 p-6 text-center">
 <svg class="h-14 w-14 text-brand" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3a2 2 0 0 0-2 2v3h2V5h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM1 18v3h3a3 3 0 0 0-3-3zm0-4v2a5 5 0 0 1 5 5h2a7 7 0 0 0-7-7zm0-4v2a9 9 0 0 1 9 9h2A11 11 0 0 0 1 10z"/></svg>
 <div class="font-display text-2xl uppercase sm:text-4xl">Transmitindo</div>
@@ -141,12 +139,10 @@ window.__onGCastApiAvailable=function(ok){window.__castReady=!!ok;window.dispatc
 <div data-ref="menu" hidden class="absolute bottom-12 right-0 min-w-[9rem] overflow-hidden rounded-xl bg-panel/95 py-1 text-sm ring-1 ring-white/10 backdrop-blur"></div>
 </div>
 
-<!-- Chromecast -->
 <button type="button" data-ref="castBtn" data-action="cast" hidden class="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/10" aria-label="Transmitir (Chromecast)" title="Transmitir para TV (Chromecast)">
 <svg data-ref="castIcon" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3a2 2 0 0 0-2 2v3h2V5h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM1 18v3h3a3 3 0 0 0-3-3zm0-4v2a5 5 0 0 1 5 5h2a7 7 0 0 0-7-7zm0-4v2a9 9 0 0 1 9 9h2A11 11 0 0 0 1 10z"/></svg>
 </button>
 
-<!-- AirPlay / Remote Playback -->
 <button type="button" data-ref="airBtn" data-action="airplay" hidden class="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/10" aria-label="AirPlay" title="AirPlay / Apple TV">
 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M6 22h12l-6-6zM21 3H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4v-2H3V5h18v12h-4v2h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
 </button>
@@ -173,8 +169,8 @@ if (!channelId) {
   return;
 }
 
-/* ================= CONFIG ================= */
-const AGENDA_URL = "https://apisinalpublico.vercel.app/agenda.json";
+
+const AGENDA_URL = "https://%61%70%69%73%69%6E%61%6C%70%75%62%6C%69%63%6F.%76%65%72%63%65%6C.%61%70%70/agenda.json";
 const AD_CLICK_URL = "https://tr.ee/neurallinks";
 const AD_SKIP_SECONDS = 5;
 const AD_VIDEOS = [1,2,3,4,5,6].map(n => `https://calmcd3b.mpjaq3evvk.workers.dev/pasta/vid/${n}Ke3cf6006f5c.mp4`);
@@ -189,18 +185,18 @@ const STREAM_DOMAINS = [
 ];
 const LIVE_THRESHOLD = 12;
 const SEEK_STEP = 10;
-/* ========================================= */
+
 
 let streamIndex = 0;
 let src = `${STREAM_DOMAINS[0]}/${channelId}.m3u8`;
-const poster = `https://img.faz-o-eli.online/${channelId}.prev.png`;
+const poster = `https://%69%6D%67.%66%61%7A-%6F-%65%6C%69.%6F%6E%6C%69%6E%65/${channelId}.prev.png`;
 
 const UA = navigator.userAgent;
 const IS_IOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const IS_SAFARI = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(UA);
 const IS_TOUCH = matchMedia('(pointer:coarse)').matches;
 
-/* ---------- P2P ---------- */
+
 const p2pLog = (...a) => console.log('%c[P2P]', 'color:#ff5757;font-weight:bold', ...a);
 const p2pWarn = (...a) => console.warn('%c[P2P]', 'color:#ff5757;font-weight:bold', ...a);
 const p2pReady = (IS_IOS || !window.RTCPeerConnection) ? Promise.resolve(null) :
@@ -245,7 +241,7 @@ function p2pConfig() {
   };
 }
 
-/* ---------- DOM ---------- */
+
 const root = document.getElementById('player');
 const ref = {};
 root.querySelectorAll('[data-ref]').forEach(el => ref[el.dataset.ref] = el);
@@ -269,7 +265,7 @@ function set(patch) { Object.assign(state, patch); render(); }
 
 function useNative() {
   const native = !!video.canPlayType('application/vnd.apple.mpegurl');
-  // iPhone/Safari: HLS nativo garante AirPlay, PiP e economia de bateria
+
   if (native && (IS_IOS || IS_SAFARI)) return true;
   return native && !(window.Hls && Hls.isSupported());
 }
@@ -337,7 +333,7 @@ function render() {
   ref.iconFsExit.toggleAttribute('hidden', !s.isFullscreen);
 }
 
-/* ---------- Anúncio ---------- */
+
 async function checkAgendaForAd() {
   try {
     const res = await fetch(AGENDA_URL + '?t=' + Date.now(), { cache: 'no-store' });
@@ -382,7 +378,7 @@ function runAd() {
     };
     const tryNext = () => { clearTimeout(loadTimer); idx++; playNext(); };
     const playNext = () => {
-      if (idx >= order.length) { finish('no-ad'); return; }   // sem anúncio disponível: segue direto para o vídeo
+      if (idx >= order.length) { finish('no-ad'); return; }   
       clearTimeout(loadTimer);
       loadTimer = setTimeout(tryNext, 8000);
       adVideo.src = order[idx];
@@ -418,7 +414,7 @@ async function startWithAd() {
   load();
 }
 
-/* ---------- Carregamento HLS ---------- */
+
 function nextDomain() {
   if (streamIndex >= STREAM_DOMAINS.length - 1) return false;
   streamIndex++;
@@ -500,14 +496,14 @@ function startPlayback() {
   if (state.volume === 0) state.volume = 1;
   video.volume = state.volume;
   video.play().catch(() => {
-    // autoplay bloqueado com som: tenta mudo e deixa o usuário ativar o som
+
     video.muted = true;
     video.play().catch(() => set({ loading: false }));
   });
 }
 function fail() { set({ error: true, loading: false, playing: false }); }
 
-/* ---------- Controles ---------- */
+
 function play() {
   if (adBusy) return;
   if (state.casting) return castPlayPause();
@@ -574,7 +570,7 @@ function fullscreen() {
       try { screen.orientation?.lock?.('landscape').catch(() => {}); } catch {}
     }).catch(() => {});
   } else if (root.webkitRequestFullscreen) root.webkitRequestFullscreen();
-  else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();   // iPhone
+  else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();  
 }
 function pip() {
   if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
@@ -586,7 +582,7 @@ function poke() {
   idleTimer = setTimeout(() => { if (!state.menu) set({ idle: true }); }, 3500);
 }
 
-/* ---------- AirPlay / Remote Playback ---------- */
+
 function airplay() {
   if (video.webkitShowPlaybackTargetPicker) return video.webkitShowPlaybackTargetPicker();
   if (video.remote?.prompt) video.remote.prompt().catch(() => {});
@@ -594,11 +590,11 @@ function airplay() {
 if (window.WebKitPlaybackTargetAvailabilityEvent) {
   video.addEventListener('webkitplaybacktargetavailabilitychanged', e => set({ airAvail: e.availability === 'available' }));
 } else if (video.remote?.watchAvailability) {
-  // Remote Playback API só funciona com src direto (não-MSE)
+
   video.remote.watchAvailability(a => { if (useNative()) set({ airAvail: a }); }).catch(() => {});
 }
 
-/* ---------- Chromecast ---------- */
+
 let castCtx = null, castPlayer = null, castCtl = null;
 
 function initCast() {
@@ -683,7 +679,7 @@ function stopCastingUI() {
 function castStop() { castCtx?.endCurrentSession(true); }
 function castPlayPause() { try { castCtl.playOrPause(); } catch {} }
 
-/* ---------- Eventos ---------- */
+
 const actions = {
   play, unmute, retry: () => load(), refresh: () => location.reload(),
   toggle, toggleMute: () => (state.muted ? unmute() : mute()),
@@ -707,7 +703,7 @@ root.addEventListener('click', e => {
 });
 document.addEventListener('click', e => { if (state.menu && !root.contains(e.target)) set({ menu: null }); });
 
-// Superfície: toque simples = mostra/oculta controles (touch) ou play/pause (mouse); duplo toque nas laterais = ±10s; centro = tela cheia
+
 let lastTap = 0, tapTimer = null;
 ref.surface.addEventListener('click', e => {
   if (state.menu) return set({ menu: null });
@@ -762,11 +758,11 @@ video.addEventListener('timeupdate', () => {
   checkLive();
   if (state.loading && !video.paused && video.readyState >= 3) set({ loading: false });
 });
-// iPhone entrando/saindo do player nativo de tela cheia
+
 video.addEventListener('webkitbeginfullscreen', () => set({ isFullscreen: true }));
 video.addEventListener('webkitendfullscreen', () => set({ isFullscreen: false }));
 
-/* ---------- Watchdog de travamento ---------- */
+
 const STALL_LIMIT = 8000;
 let lastTime = -1, stalledSince = 0, lastRecovery = 0;
 setInterval(() => {
@@ -779,7 +775,7 @@ setInterval(() => {
   else if (Date.now() - lastRecovery > 20000) { lastRecovery = Date.now(); load(); }
 }, 1000);
 
-// Reconecta ao voltar a rede e ao voltar para a aba/app
+
 window.addEventListener('online', () => { if (state.started && !state.casting) load(); });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
@@ -787,7 +783,7 @@ document.addEventListener('visibilitychange', () => {
   if (state.started && !state.casting && !video.paused) goLive();
 });
 
-/* ---------- Wake Lock (tela não apaga) ---------- */
+
 async function requestWake() {
   try {
     if (!('wakeLock' in navigator) || wakeLock || document.hidden) return;
@@ -796,7 +792,7 @@ async function requestWake() {
   } catch {}
 }
 
-/* ---------- Media Session (controles na tela de bloqueio / TV) ---------- */
+
 function updateMediaSession() {
   if (!('mediaSession' in navigator)) return;
   try {
@@ -811,11 +807,11 @@ function updateMediaSession() {
   } catch {}
 }
 
-/* ---------- Fullscreen ---------- */
+
 document.addEventListener('fullscreenchange', () => set({ isFullscreen: !!document.fullscreenElement }));
 document.addEventListener('webkitfullscreenchange', () => set({ isFullscreen: !!document.webkitFullscreenElement }));
 
-/* ---------- Init ---------- */
+
 try {
   const sv = parseFloat(localStorage.getItem('player-volume'));
   if (!isNaN(sv)) state.volume = sv;
